@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MotoTrack ⚡</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0a0a0f; --bg2:#111118; --bg3:#18181f; --bg4:#1e1e28;
+  --red:#ff3c5f; --teal:#00c9a7; --gold:#e6a800;
+  --blue:#4d8af0; --purple:#a855f7; --orange:#ff8c42;
+  --muted:#60607a; --text:#eeeef8; --sub:#9898b8; --border:#22222e;
+}
+html.light{
+  --bg:#f0f4f8; --bg2:#ffffff; --bg3:#e8eef5; --bg4:#dde5ef;
+  --red:#d92b4b; --teal:#009e82; --gold:#c47e00;
+  --blue:#2d6fd6; --purple:#8b36d6; --orange:#d96a1a;
+  --muted:#7a8499; --text:#1a1e2e; --sub:#4a5068; --border:#c8d3e0;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-size:20px;line-height:1.65;transition:background .25s,color .25s;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+
+/* HEADER */
+.header{background:linear-gradient(90deg,var(--bg2),var(--bg3));border-bottom:1px solid var(--border);padding:1.2rem 1.6rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.brand{display:flex;align-items:center;gap:13px;}
+.brand-icon{width:46px;height:46px;background:var(--red);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
+.brand-name{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;letter-spacing:1px;color:#fff;line-height:1;}
+html.light .brand-name{color:#1a1e2e;}
+.brand-sub{font-size:0.75rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+.hdr-btns{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end;}
+
+/* TABS */
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.2rem;overflow-x:auto;transition:background .25s;}
+.tab{background:none;border:none;border-bottom:3px solid transparent;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.05rem;letter-spacing:1px;text-transform:uppercase;padding:15px 19px;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.tab.active{color:var(--red);border-bottom-color:var(--red);}
+.tab.tt.active{color:var(--teal);border-bottom-color:var(--teal);}
+.tab.tp.active{color:var(--purple);border-bottom-color:var(--purple);}
+.tab.to.active{color:var(--orange);border-bottom-color:var(--orange);}
+.tab.tg.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tab.tb.active{color:var(--blue);border-bottom-color:var(--blue);}
+
+.content{padding:1.6rem;max-width:760px;margin:0 auto;}
+
+/* BUTTONS */
+.btn{border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;cursor:pointer;transition:all .18s;border:2px solid;padding:11px 22px;font-size:1rem;letter-spacing:.5px;text-transform:uppercase;}
+.btn-sm{padding:8px 16px;font-size:.9rem;}
+.btn-red{background:var(--red);border-color:var(--red);color:#fff;}
+.btn-purple{background:var(--purple);border-color:var(--purple);color:#fff;}
+.btn-teal{background:var(--teal);border-color:var(--teal);color:#000;}
+.btn-og{background:transparent;border-color:var(--gold);color:var(--gold);}
+.btn-or{background:transparent;border-color:var(--red);color:var(--red);}
+.btn-op{background:transparent;border-color:var(--purple);color:var(--purple);}
+.btn-oo{background:transparent;border-color:var(--orange);color:var(--orange);}
+.btn-om{background:transparent;border-color:var(--border);color:var(--muted);}
+.btn:hover{opacity:.82;transform:translateY(-1px);}
+
+/* CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:13px;margin-bottom:1.7rem;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:1.3rem 1.4rem;position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--ac,var(--red));}
+.card-label{font-size:0.88rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:9px;}
+.card-val{font-family:'Barlow Condensed',sans-serif;font-size:3rem;font-weight:900;line-height:1;color:var(--ac,var(--red));}
+.card-unit{font-size:0.95rem;color:var(--sub);margin-top:5px;}
+.card-sub{font-size:0.88rem;color:var(--muted);margin-top:9px;line-height:1.4;}
+
+/* SECTION HEADER */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;}
+.sh-title{font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;}
+
+/* ALERTS */
+.alert{border-radius:14px;padding:15px 19px;margin-bottom:1.6rem;font-size:0.95rem;display:flex;gap:13px;align-items:flex-start;line-height:1.6;}
+.a-red   {background:#ff3c5f18;border:1px solid #ff3c5f55;color:#c0001e;}
+.a-orange{background:#ff8c4218;border:1px solid #ff8c4255;color:#b35500;}
+.a-yellow{background:#ffc84518;border:1px solid #ffc84555;color:#8a6000;}
+.a-purple{background:#a855f718;border:1px solid #a855f755;color:#7422c2;}
+.a-teal  {background:#00c9a718;border:1px solid #00c9a755;color:#007a64;}
+.a-blue  {background:#4d8af018;border:1px solid #4d8af055;color:#1a4fa0;}
+html.light .a-red   {background:#fde8ec;border-color:#f5a0b0;color:#9b001a;}
+html.light .a-orange{background:#fef0e6;border-color:#f5c09a;color:#8a3d00;}
+html.light .a-yellow{background:#fef8e6;border-color:#f5dd9a;color:#664a00;}
+html.light .a-purple{background:#f4eafd;border-color:#cc99f0;color:#5c1a9e;}
+html.light .a-teal  {background:#e4faf6;border-color:#80ddd0;color:#005c4a;}
+html.light .a-blue  {background:#e8f0fd;border-color:#9bbaf5;color:#12368a;}
+.alert-icon{font-size:1.3rem;flex-shrink:0;margin-top:1px;}
+.alert-body{flex:1;}
+.alert-title{font-weight:800;font-size:1.1rem;margin-bottom:4px;}
+.alert-text{font-size:0.95rem;opacity:.9;}
+
+/* LOG ROW */
+.log{display:flex;align-items:center;gap:13px;padding:13px 17px;background:var(--bg2);border-radius:13px;margin-bottom:9px;border-left:4px solid var(--ac,var(--red));transition:background .15s;}
+.log:hover{background:var(--bg3);}
+.log-body{flex:1;min-width:0;}
+.log-title{font-weight:700;font-size:1.15rem;}
+.log-sub{color:var(--muted);font-size:0.88rem;margin-top:4px;}
+.log-price{font-family:'Barlow Condensed',sans-serif;font-size:1.25rem;font-weight:800;color:var(--gold);white-space:nowrap;margin-left:4px;}
+.log-acts{display:flex;gap:6px;flex-shrink:0;}
+.ibtn{background:none;border:none;cursor:pointer;font-size:1.05rem;padding:5px 8px;color:var(--muted);border-radius:8px;transition:all .15s;}
+.ibtn:hover{background:var(--bg4);color:var(--text);}
+
+/* GAUGE */
+.gauge-wrap{margin-bottom:1.6rem;}
+.gauge-label{font-size:0.92rem;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.gauge-pct{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;}
+.gauge-track{height:13px;background:var(--bg3);border-radius:99px;overflow:hidden;}
+.gauge-fill{height:100%;border-radius:99px;transition:width .7s cubic-bezier(.4,0,.2,1);}
+
+/* CALC BOX */
+.calc-box{background:linear-gradient(135deg,var(--bg3),var(--bg4));border:1px solid #ffc84533;border-radius:18px;padding:1.5rem;margin-bottom:1.7rem;}
+.box-title{font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:15px;}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px;}
+.calc-result{background:var(--bg);border-radius:12px;padding:13px 17px;display:flex;justify-content:space-between;align-items:center;}
+.cres-label{font-size:0.95rem;color:var(--muted);}
+.cres-val{font-family:'Barlow Condensed',sans-serif;font-size:2.2rem;font-weight:900;}
+
+/* ALERT HISTORY */
+.alert-hist-row{display:flex;align-items:center;gap:12px;padding:11px 15px;background:var(--bg3);border-radius:11px;margin-bottom:7px;}
+.ahist-icon{font-size:1.1rem;flex-shrink:0;}
+.ahist-body{flex:1;}
+.ahist-title{font-size:.92rem;font-weight:600;}
+.ahist-sub{font-size:.75rem;color:var(--muted);margin-top:2px;}
+.ahist-badge{font-family:'Barlow Condensed',sans-serif;font-size:.82rem;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.84);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;}
+.modal{background:var(--bg2);border:1px solid #ff3c5f44;border-radius:22px;padding:2.1rem;width:100%;max-width:450px;max-height:92vh;overflow-y:auto;}
+.modal-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.7rem;}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:800;}
+.xbtn{background:none;border:none;color:var(--muted);font-size:1.9rem;cursor:pointer;line-height:1;}
+.xbtn:hover{color:var(--text);}
+
+/* FIELDS */
+.field{margin-bottom:1.2rem;}
+.field label{display:block;color:var(--sub);font-size:0.9rem;margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+.frow{display:flex;gap:10px;align-items:center;}
+.frow .unit{color:var(--muted);font-size:.9rem;white-space:nowrap;}
+input[type=number],input[type=text],input[type=date],select{
+  width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;
+  padding:12px 15px;color:var(--text);font-family:'Barlow',sans-serif;
+  font-size:1rem;outline:none;transition:border-color .2s,background .25s;-webkit-appearance:none;
+}
+html.light input[type=number],html.light input[type=text],html.light input[type=date],html.light select{background:var(--bg3);}
+input:focus,select:focus{border-color:var(--fc,var(--red));}
+select option{background:var(--bg2);color:var(--text);}
+.modal-btns{display:flex;gap:13px;margin-top:1.6rem;}
+.hint{background:var(--bg);border-radius:10px;padding:11px 15px;font-size:.85rem;color:var(--muted);margin-bottom:1.2rem;line-height:1.5;}
+.divider{height:1px;background:var(--border);margin:1.3rem 0;}
+
+/* REPORTS */
+.rsection{background:var(--bg2);border:1px solid var(--border);border-radius:17px;padding:1.5rem;margin-bottom:1.2rem;}
+.rsection-title{font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:13px;}
+.rrow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+.rrow:last-child{border-bottom:none;}
+.rrow-label{font-size:1rem;color:var(--sub);}
+.rrow-val{font-family:'Barlow Condensed',sans-serif;font-size:1.35rem;font-weight:800;}
+.mrow{display:flex;justify-content:space-between;align-items:center;padding:11px 15px;border-radius:11px;margin-bottom:7px;background:var(--bg3);transition:background .15s;}
+.mrow:hover{background:var(--bg4);}
+.mrow-left{flex:1;}
+.mrow-name{font-size:1.1rem;font-weight:700;}
+.mrow-sub{font-size:0.85rem;color:var(--muted);margin-top:3px;}
+.mrow-stats{display:flex;gap:16px;}
+.mstat{display:flex;flex-direction:column;align-items:flex-end;}
+.mstat-val{font-family:'Barlow Condensed',sans-serif;font-size:1.15rem;font-weight:800;}
+.mstat-lbl{font-size:0.72rem;color:var(--muted);text-transform:uppercase;}
+
+/* PERIOD SEL */
+.period-sel{display:flex;gap:11px;align-items:center;margin-bottom:1.4rem;flex-wrap:wrap;}
+.period-sel select{width:auto;flex:none;min-width:110px;}
+.plabel{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+
+/* SETTINGS */
+.ssection{background:var(--bg2);border:1px solid var(--border);border-radius:17px;padding:1.5rem;margin-bottom:1.2rem;}
+.ssection-title{font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:11px;}
+.sdesc{color:var(--muted);font-size:.88rem;margin-bottom:13px;line-height:1.6;}
+
+/* CONS BADGE */
+.cbadge{display:inline-flex;align-items:baseline;gap:6px;border-radius:99px;padding:6px 16px;margin-bottom:1.3rem;}
+.cbadge-val{font-family:'Barlow Condensed',sans-serif;font-size:1.7rem;font-weight:900;}
+.cbadge-unit{font-size:0.9rem;color:var(--sub);}
+
+/* PREDICTION BOX */
+.pred-box{background:linear-gradient(135deg,var(--bg3),var(--bg4));border:1px solid var(--orange)33;border-radius:18px;padding:1.4rem;margin-bottom:1.7rem;}
+
+/* THEME TOGGLE */
+.theme-btn{
+  background:var(--bg3);border:1.5px solid var(--border);border-radius:99px;
+  color:var(--text);cursor:pointer;font-size:1.1rem;padding:6px 13px;
+  display:flex;align-items:center;gap:7px;transition:all .2s;
+  font-family:'Barlow',sans-serif;font-size:.85rem;font-weight:600;
+  white-space:nowrap;flex-shrink:0;
+}
+.theme-btn:hover{background:var(--bg4);}
+
+.empty{color:var(--border);text-align:center;padding:3.5rem 0;font-size:1rem;}
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--teal);border-radius:12px;padding:11px 24px;font-size:.92rem;color:var(--teal);z-index:999;animation:fiu .3s ease;white-space:nowrap;pointer-events:none;}
+@keyframes fiu{from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+
+@media(max-width:500px){
+  .header{padding:1rem 1.1rem;}
+  .content{padding:1.1rem;}
+  .card-val{font-size:2rem;}
+  .calc-grid{grid-template-columns:1fr;}
+  .mrow-stats{gap:9px;}
+  .tab{padding:13px 13px;font-size:.88rem;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <div class="brand-icon">⚡</div>
+    <div>
+      <div class="brand-name">MotoTrack</div>
+      <div class="brand-sub">Suivi Consommation</div>
+    </div>
+  </div>
+  <div class="hdr-btns">
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">🌙 Sombre</button>
+    <button class="btn btn-sm btn-red"  onclick="openModal('fuel')">+ Essence</button>
+    <button class="btn btn-sm btn-op"   onclick="openModal('oil')">+ Huile</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" id="tab-dashboard" onclick="switchTab('dashboard')">📊 Dashboard</button>
+  <button class="tab tt"     id="tab-fuel"      onclick="switchTab('fuel')">⛽ Essence</button>
+  <button class="tab tp"     id="tab-oil"       onclick="switchTab('oil')">🟣 Huile</button>
+  <button class="tab to"     id="tab-alerts"    onclick="switchTab('alerts')">🔔 Alertes</button>
+  <button class="tab tg"     id="tab-report"    onclick="switchTab('report')">📈 Rapports</button>
+  <button class="tab tb"     id="tab-settings"  onclick="switchTab('settings')">⚙️ Réglages</button>
+</div>
+
+<div class="content">
+  <div id="page-dashboard"></div>
+  <div id="page-fuel"    style="display:none"></div>
+  <div id="page-oil"     style="display:none"></div>
+  <div id="page-alerts"  style="display:none"></div>
+  <div id="page-report"  style="display:none"></div>
+  <div id="page-settings"style="display:none"></div>
+</div>
+
+<div class="overlay" id="modal-overlay" style="display:none" onclick="overlayClick(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-hd">
+      <div class="modal-title" id="modal-title"></div>
+      <button class="xbtn" onclick="closeModal()">×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+<div class="toast" id="toast" style="display:none"></div>
+
+<script>
+// ══════════════════════════════ THEME
+function toggleTheme(){
+  const isLight=document.documentElement.classList.toggle('light');
+  localStorage.setItem('mototrack_theme', isLight?'light':'dark');
+  document.getElementById('theme-btn').textContent=isLight?'🌙 Sombre':'☀️ Clair';
+}
+function loadTheme(){
+  const t=localStorage.getItem('mototrack_theme')||'dark';
+  if(t==='light'){
+    document.documentElement.classList.add('light');
+    document.getElementById('theme-btn').textContent='🌙 Sombre';
+  } else {
+    document.getElementById('theme-btn').textContent='☀️ Clair';
+  }
+}
+
+// ══════════════════════════════ STATE
+let S = {
+  fuel:[],        // {id,km,liters,totalPrice,pricePerL,date,note}
+  oil:[],         // {id,km,liters,totalPrice,date,note}
+  alertHistory:[], // {id,type,msg,date,km}
+  fuelPricePerL:2.200,
+  oilPricePerL:8.000,
+  oilAlertKm:800,   // used if no average available
+  currency:'TND'
+};
+let currentTab='dashboard', editId=null, modalType=null;
+
+function save(){ localStorage.setItem('mototrack_v5',JSON.stringify(S)); }
+function load(){
+  try{ const d=JSON.parse(localStorage.getItem('mototrack_v5')||'null'); if(d) S=Object.assign({alertHistory:[],...S},d); }catch(e){}
+}
+
+// ══════════════════════════════ UTILS
+const uid      = ()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
+const fmtDate  = iso=>!iso?'—':new Date(iso).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+const fmtMoney = v=>Number(v).toFixed(3)+' '+S.currency;
+const fmtL     = v=>Number(v).toFixed(2)+' L';
+const sortDesc = arr=>[...arr].sort((a,b)=>new Date(b.date)-new Date(a.date));
+const sortKm   = arr=>[...arr].sort((a,b)=>a.km-b.km);
+
+function calcFuelCons(logs){
+  if(logs.length<2) return null;
+  const s=sortKm(logs);
+  const liters=s.slice(1).reduce((t,l)=>t+l.liters,0);
+  const km=s[s.length-1].km-s[0].km;
+  return km?((liters/km)*100):null;
+}
+
+// Average km between oil purchases
+function avgKmPerOil(){
+  if(S.oil.length<2) return null;
+  const s=sortKm(S.oil);
+  const intervals=[];
+  for(let i=1;i<s.length;i++) intervals.push(s[i].km-s[i-1].km);
+  return Math.round(intervals.reduce((a,b)=>a+b,0)/intervals.length);
+}
+
+// km since last oil purchase (vs last fuel km)
+function kmSinceLastOil(){
+  if(!S.oil.length) return null;
+  const lastOilKm=sortKm(S.oil).slice(-1)[0].km;
+  const lastFuelKm=S.fuel.length?sortKm(S.fuel).slice(-1)[0].km:lastOilKm;
+  return Math.max(0,lastFuelKm-lastOilKm);
+}
+
+// Predict next oil purchase km
+function predictNextOilKm(){
+  const avg=avgKmPerOil();
+  if(!avg||!S.oil.length) return null;
+  const lastOilKm=sortKm(S.oil).slice(-1)[0].km;
+  return lastOilKm+avg;
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.display='block';
+  clearTimeout(t._to); t._to=setTimeout(()=>t.style.display='none',2500);
+}
+
+// ══════════════════════════════ SMART ALERT ENGINE
+function checkAndFireAlerts(){
+  const avg=avgKmPerOil()||S.oilAlertKm;
+  const ksSinceOil=kmSinceLastOil();
+  if(ksSinceOil===null) return;
+
+  const pct=ksSinceOil/avg;
+  const now=new Date().toISOString().slice(0,10);
+  const lastFuelKm=S.fuel.length?sortKm(S.fuel).slice(-1)[0].km:0;
+
+  // Only fire once per threshold crossing (check last alert)
+  const lastAlert=S.alertHistory.slice(-1)[0];
+  const alreadyFiredToday=lastAlert&&lastAlert.date===now;
+
+  if(pct>=1.0&&!alreadyFiredToday){
+    pushAlert('urgent','🔴 Témoin huile imminent !',`${ksSinceOil.toLocaleString('fr')} km depuis le dernier bidon. Achetez de l'huile dès aujourd'hui !`,now,lastFuelKm);
+  } else if(pct>=0.8&&!alreadyFiredToday){
+    pushAlert('warning','🟡 Pensez à acheter de l\'huile',`${ksSinceOil.toLocaleString('fr')} km parcourus. Il vous reste environ ${Math.round((avg-ksSinceOil)).toLocaleString('fr')} km avant le témoin.`,now,lastFuelKm);
+  } else if(pct>=0.6&&!alreadyFiredToday){
+    pushAlert('info','🔵 Rappel huile',`${Math.round((avg-ksSinceOil)).toLocaleString('fr')} km estimés avant le prochain bidon.`,now,lastFuelKm);
+  }
+}
+
+function pushAlert(type,title,text,date,km){
+  S.alertHistory.push({id:uid(),type,title,text,date,km});
+  if(S.alertHistory.length>50) S.alertHistory=S.alertHistory.slice(-50);
+  save();
+}
+
+// ══════════════════════════════ UI COMPONENTS
+function card(label,val,unit,sub,ac){
+  return `<div class="card" style="--ac:${ac}">
+    <div class="card-label">${label}</div>
+    <div class="card-val">${val}</div>
+    ${unit?`<div class="card-unit">${unit}</div>`:''}
+    ${sub?`<div class="card-sub">${sub}</div>`:''}
+  </div>`;
+}
+
+function gaugeBar(val,max,color,label){
+  const pct=Math.min(100,(val/max)*100);
+  const fill=pct>=100?'var(--red)':pct>=80?'var(--orange)':pct>=60?'var(--gold)':color;
+  return `<div class="gauge-wrap">
+    <div class="gauge-label">
+      <span>${label}</span>
+      <span class="gauge-pct" style="color:${fill}">${Math.round(pct)}%</span>
+    </div>
+    <div class="gauge-track"><div class="gauge-fill" style="width:${pct}%;background:${fill}"></div></div>
+  </div>`;
+}
+
+function fuelRow(l){
+  const price=l.totalPrice?`<div class="log-price">${fmtMoney(l.totalPrice)}</div>`:'';
+  return `<div class="log" style="--ac:var(--red)">
+    <div class="log-body">
+      <div class="log-title">${fmtL(l.liters)} — ${Number(l.km).toLocaleString('fr')} km</div>
+      <div class="log-sub">${fmtDate(l.date)}${l.pricePerL?' · '+Number(l.pricePerL).toFixed(3)+' TND/L':''}${l.note?' · '+l.note:''}</div>
+    </div>
+    ${price}
+    <div class="log-acts">
+      <button class="ibtn" onclick="openEdit('fuel','${l.id}')">✏️</button>
+      <button class="ibtn" onclick="delLog('fuel','${l.id}')">🗑</button>
+    </div>
+  </div>`;
+}
+
+function oilRow(l){
+  const price=l.totalPrice?`<div class="log-price">${fmtMoney(l.totalPrice)}</div>`:'';
+  return `<div class="log" style="--ac:var(--purple)">
+    <div class="log-body">
+      <div class="log-title">Bidon ${fmtL(l.liters)} — ${Number(l.km).toLocaleString('fr')} km</div>
+      <div class="log-sub">${fmtDate(l.date)}${l.note?' · '+l.note:''}</div>
+    </div>
+    ${price}
+    <div class="log-acts">
+      <button class="ibtn" onclick="openEdit('oil','${l.id}')">✏️</button>
+      <button class="ibtn" onclick="delLog('oil','${l.id}')">🗑</button>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════ DASHBOARD
+function renderDashboard(){
+  const fd=sortDesc(S.fuel), od=sortDesc(S.oil);
+  const lF=fd[0], lO=od[0];
+  const cons=calcFuelCons(S.fuel);
+  const avg=avgKmPerOil();
+  const ksSince=kmSinceLastOil();
+  const nextKm=predictNextOilKm();
+  const alertKm=avg||S.oilAlertKm;
+  const pct=ksSince!==null?ksSince/alertKm:0;
+
+  const tFL=S.fuel.reduce((s,l)=>s+l.liters,0);
+  const tFP=S.fuel.reduce((s,l)=>s+(l.totalPrice||0),0);
+  const tOL=S.oil.reduce((s,l)=>s+l.liters,0);
+  const tOP=S.oil.reduce((s,l)=>s+(l.totalPrice||0),0);
+
+  let h='';
+
+  // SMART ALERT BANNER
+  if(ksSince!==null){
+    if(pct>=1.0){
+      h+=`<div class="alert a-red"><div class="alert-icon">🔴</div><div class="alert-body"><div class="alert-title">Témoin huile imminent !</div><div class="alert-text">${ksSince.toLocaleString('fr')} km depuis le dernier bidon. Achetez de l'huile <strong>maintenant</strong> !</div></div></div>`;
+    } else if(pct>=0.8){
+      h+=`<div class="alert a-orange"><div class="alert-icon">⚠️</div><div class="alert-body"><div class="alert-title">Pensez à acheter de l'huile</div><div class="alert-text">${ksSince.toLocaleString('fr')} km parcourus · Environ <strong>${Math.round(alertKm-ksSince).toLocaleString('fr')} km restants</strong> avant le témoin.</div></div></div>`;
+    } else if(pct>=0.6){
+      h+=`<div class="alert a-yellow"><div class="alert-icon">🟡</div><div class="alert-body"><div class="alert-title">Rappel huile</div><div class="alert-text">Il vous reste environ <strong>${Math.round(alertKm-ksSince).toLocaleString('fr')} km</strong> avant de devoir acheter un bidon.</div></div></div>`;
+    }
+  }
+
+  // CALCULATEUR
+  h+=`<div class="calc-box" style="border-color:#ffc84533">
+    <div class="box-title" style="color:var(--gold)">🧮 Calculateur Plein Essence</div>
+    <div class="calc-grid">
+      <div class="field" style="margin:0"><label>Montant à payer</label><div class="frow"><input type="number" id="calc-amount" placeholder="ex: 10" oninput="updateCalc()" style="--fc:var(--gold)"/><span class="unit">${S.currency}</span></div></div>
+      <div class="field" style="margin:0"><label>Prix / litre</label><div class="frow"><input type="number" id="calc-price" step="0.001" value="${S.fuelPricePerL}" oninput="updateCalc()" style="--fc:var(--gold)"/><span class="unit">${S.currency}/L</span></div></div>
+    </div>
+    <div class="calc-result"><span class="cres-label">Litres obtenus :</span><span class="cres-val" id="calc-result" style="color:var(--gold)">Entrez un montant</span></div>
+  </div>`;
+
+  // ESSENCE
+  h+=`<div class="sh"><div class="sh-title" style="color:var(--red)">⛽ Essence</div></div>`;
+  h+=`<div class="cards">
+    ${card('Dernier plein',lF?fmtL(lF.liters):'—','',lF?fmtDate(lF.date)+' · '+Number(lF.km).toLocaleString('fr')+' km':'Aucun enregistrement','var(--red)')}
+    ${card('Consommation moy.',cons?cons.toFixed(2):'—',cons?'L / 100 km':'',cons?`sur ${S.fuel.length} pleins`:'2 pleins minimum','var(--red)')}
+    ${card('Total payé',tFP?fmtMoney(tFP):'—','',tFL.toFixed(1)+' L · '+S.fuel.length+' pleins','var(--red)')}
+  </div>`;
+
+  // HUILE
+  h+=`<div class="sh"><div class="sh-title" style="color:var(--purple)">🟣 Huile Moteur</div></div>`;
+  h+=`<div class="cards">
+    ${card('Dernier bidon',lO?fmtL(lO.liters):'—','',lO?fmtDate(lO.date)+' · '+Number(lO.km).toLocaleString('fr')+' km':'Aucun enregistrement','var(--purple)')}
+    ${card('km depuis bidon',ksSince!==null?ksSince.toLocaleString('fr'):'—','km','','var(--purple)')}
+    ${card('Moy. km/bidon',avg?avg.toLocaleString('fr'):'—',avg?'km':'',avg?`${S.oil.length} bidons enregistrés`:'2 bidons min.','var(--purple)')}
+  </div>`;
+
+  // GAUGE HUILE
+  if(ksSince!==null){
+    h+=gaugeBar(ksSince,alertKm,'var(--teal)',`Progression huile (${ksSince.toLocaleString('fr')} / ${alertKm.toLocaleString('fr')} km)`);
+  }
+
+  // PREDICTION
+  if(nextKm&&avg){
+    const lastFuelKm=S.fuel.length?sortKm(S.fuel).slice(-1)[0].km:0;
+    const kmLeft=Math.max(0,nextKm-lastFuelKm);
+    const cons100=cons||6; // fallback estimate
+    const litresLeft=(kmLeft/100)*cons100;
+    h+=`<div class="pred-box">
+      <div class="box-title" style="color:var(--orange)">🔮 Prédiction Intelligente</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+        <div style="background:var(--bg);border-radius:12px;padding:13px 16px">
+          <div style="font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Prochain bidon prévu à</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.7rem;font-weight:800;color:var(--orange)">${nextKm.toLocaleString('fr')} km</div>
+          <div style="font-size:.8rem;color:var(--muted);margin-top:4px">dans ~${kmLeft.toLocaleString('fr')} km</div>
+        </div>
+        <div style="background:var(--bg);border-radius:12px;padding:13px 16px">
+          <div style="font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Essence d'ici là</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.7rem;font-weight:800;color:var(--gold)">${litresLeft.toFixed(1)} L</div>
+          <div style="font-size:.8rem;color:var(--muted);margin-top:4px">≈ ${fmtMoney(litresLeft*S.fuelPricePerL)}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // TOTAL
+  if(tFP+tOP>0){
+    h+=`<div class="sh"><div class="sh-title" style="color:var(--gold)">💰 Dépenses</div></div>`;
+    h+=`<div class="cards">
+      ${card('Total dépensé',fmtMoney(tFP+tOP),'','Essence + Huile','var(--gold)')}
+      ${cons&&tFP>0?card('Coût/100km',fmtMoney((tFP/tFL)*(cons/100)),'TND/100km','Essence uniquement','var(--gold)'):''}
+    </div>`;
+  }
+
+  // RECENT
+  h+=`<div class="sh" style="margin-top:.3rem"><div class="sh-title" style="color:var(--muted)">🕒 Activité récente</div></div>`;
+  const recent=[...fd.slice(0,3).map(l=>({...l,_t:'fuel'})),...od.slice(0,2).map(l=>({...l,_t:'oil'}))]
+    .sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  if(!recent.length) h+=`<div class="empty">Aucune donnée. Commencez par un premier plein ! 🏍️</div>`;
+  else recent.forEach(l=>{ h+=l._t==='fuel'?fuelRow(l):oilRow(l); });
+
+  document.getElementById('page-dashboard').innerHTML=h;
+  updateCalc();
+}
+
+function updateCalc(){
+  const a=parseFloat(document.getElementById('calc-amount')?.value||0);
+  const p=parseFloat(document.getElementById('calc-price')?.value||S.fuelPricePerL);
+  const res=document.getElementById('calc-result');
+  if(!res) return;
+  if(a>0&&p>0){ res.textContent=(a/p).toFixed(2)+' L'; S.fuelPricePerL=p; save(); }
+  else res.textContent='Entrez un montant';
+}
+
+// ══════════════════════════════ FUEL PAGE
+function renderFuel(){
+  const cons=calcFuelCons(S.fuel);
+  const logs=sortDesc(S.fuel);
+  let h=`<div class="sh"><div class="sh-title" style="color:var(--red)">⛽ Journaux Essence</div><button class="btn btn-sm btn-red" onclick="openModal('fuel')">+ Ajouter</button></div>`;
+  if(cons) h+=`<div class="cbadge" style="background:var(--red)15;border:1px solid var(--red)33"><span class="cbadge-val" style="color:var(--red)">${cons.toFixed(2)}</span><span class="cbadge-unit">L / 100 km — Consommation moyenne</span></div>`;
+  if(!logs.length) h+=`<div class="empty">Aucun enregistrement</div>`;
+  logs.forEach(l=>{ h+=fuelRow(l); });
+  document.getElementById('page-fuel').innerHTML=h;
+}
+
+// ══════════════════════════════ OIL PAGE
+function renderOil(){
+  const avg=avgKmPerOil();
+  const logs=sortDesc(S.oil);
+  let h=`<div class="sh"><div class="sh-title" style="color:var(--purple)">🟣 Journaux Huile</div><button class="btn btn-sm btn-purple" onclick="openModal('oil')">+ Nouveau bidon</button></div>`;
+  h+=`<div class="alert a-purple"><div class="alert-icon">🟣</div><div class="alert-body"><div class="alert-title">Huile injection automatique</div><div class="alert-text">Enregistrez chaque bidon acheté. Le programme calculera votre consommation et prédit automatiquement quand acheter le prochain.</div></div></div>`;
+  if(avg) h+=`<div class="cbadge" style="background:var(--purple)12;border:1px solid var(--purple)33"><span class="cbadge-val" style="color:var(--purple)">${avg.toLocaleString('fr')}</span><span class="cbadge-unit">km / bidon — Consommation moyenne</span></div>`;
+  if(!logs.length) h+=`<div class="empty">Aucun bidon enregistré</div>`;
+  logs.forEach(l=>{ h+=oilRow(l); });
+  document.getElementById('page-oil').innerHTML=h;
+}
+
+// ══════════════════════════════ ALERTS PAGE
+function renderAlerts(){
+  const avg=avgKmPerOil()||S.oilAlertKm;
+  const ksSince=kmSinceLastOil();
+  const nextKm=predictNextOilKm();
+  const pct=ksSince!==null?Math.min(100,(ksSince/avg)*100):0;
+
+  let h=`<div class="sh"><div class="sh-title" style="color:var(--orange)">🔔 Système d'Alertes</div></div>`;
+
+  // ÉTAT ACTUEL
+  h+=`<div class="rsection" style="border-color:var(--orange)33">
+    <div class="rsection-title" style="color:var(--orange)">État actuel</div>`;
+
+  if(ksSince===null){
+    h+=`<div class="alert a-blue" style="margin:0"><div class="alert-icon">ℹ️</div><div class="alert-body"><div class="alert-title">En attente de données</div><div class="alert-text">Enregistrez au moins un bidon d'huile et un plein pour activer le système d'alertes.</div></div></div>`;
+  } else {
+    const statusColor=pct>=100?'var(--red)':pct>=80?'var(--orange)':pct>=60?'var(--gold)':'var(--teal)';
+    const statusText=pct>=100?'CRITIQUE — Témoin imminent':pct>=80?'ATTENTION — Pensez à acheter':pct>=60?'RAPPEL — Anticipez':' OK — Sous contrôle';
+    h+=`<div class="rrow"><span class="rrow-label">Statut</span><span class="rrow-val" style="color:${statusColor}">${statusText}</span></div>
+    <div class="rrow"><span class="rrow-label">km depuis dernier bidon</span><span class="rrow-val" style="color:var(--purple)">${ksSince.toLocaleString('fr')} km</span></div>
+    <div class="rrow"><span class="rrow-label">Seuil d'alerte</span><span class="rrow-val">${avg.toLocaleString('fr')} km</span></div>
+    <div class="rrow"><span class="rrow-label">km restants estimés</span><span class="rrow-val" style="color:${statusColor}">${Math.max(0,Math.round(avg-ksSince)).toLocaleString('fr')} km</span></div>`;
+    if(nextKm) h+=`<div class="rrow"><span class="rrow-label">Prochain bidon prévu à</span><span class="rrow-val" style="color:var(--orange)">${nextKm.toLocaleString('fr')} km</span></div>`;
+    h+=`</div>`;
+    h+=gaugeBar(ksSince,avg,'var(--teal)',`Progression vers le prochain bidon`);
+    h+=`<div class="rsection" style="border-color:var(--orange)33;margin-top:-.4rem">
+    <div class="rsection-title" style="color:var(--orange)">Seuils d'alerte</div>`;
+    [{lbl:'🔵 Rappel',km:Math.round(avg*.6),color:'var(--blue)'},{lbl:'🟡 Attention',km:Math.round(avg*.8),color:'var(--gold)'},{lbl:'🟠 Achetez bientôt',km:avg,color:'var(--orange)'},{lbl:'🔴 Critique',km:Math.round(avg*1.1),color:'var(--red)'}].forEach(t=>{
+      h+=`<div class="rrow"><span class="rrow-label">${t.lbl}</span><span class="rrow-val" style="color:${t.color}">${t.km.toLocaleString('fr')} km</span></div>`;
+    });
+    h+=`</div>`;
+  }
+
+  // HISTORIQUE
+  h+=`<div class="sh" style="margin-top:.5rem"><div class="sh-title" style="color:var(--muted)">📋 Historique des alertes</div>`;
+  if(S.alertHistory.length) h+=`<button class="btn btn-sm btn-om" onclick="clearAlertHistory()">Effacer</button>`;
+  h+=`</div>`;
+
+  if(!S.alertHistory.length){
+    h+=`<div class="empty">Aucune alerte déclenchée pour l'instant</div>`;
+  } else {
+    const hist=[...S.alertHistory].reverse();
+    hist.forEach(a=>{
+      const icon=a.type==='urgent'?'🔴':a.type==='warning'?'🟡':'🔵';
+      const color=a.type==='urgent'?'var(--red)':a.type==='warning'?'var(--gold)':'var(--blue)';
+      const badge=a.type==='urgent'?'Critique':a.type==='warning'?'Attention':'Rappel';
+      h+=`<div class="alert-hist-row">
+        <div class="ahist-icon">${icon}</div>
+        <div class="ahist-body">
+          <div class="ahist-title">${a.title}</div>
+          <div class="ahist-sub">${fmtDate(a.date)}${a.km?' · '+Number(a.km).toLocaleString('fr')+' km':''}</div>
+        </div>
+        <div class="ahist-badge" style="background:${color}20;border:1px solid ${color}44;color:${color}">${badge}</div>
+      </div>`;
+    });
+  }
+
+  document.getElementById('page-alerts').innerHTML=h;
+}
+
+function clearAlertHistory(){
+  if(!confirm('Effacer tout l\'historique des alertes ?')) return;
+  S.alertHistory=[];save();renderAlerts();showToast('🗑 Historique effacé');
+}
+
+// ══════════════════════════════ REPORTS
+function renderReport(){
+  const allYears=[...new Set([...S.fuel,...S.oil].map(l=>l.date.slice(0,4)))].sort().reverse();
+  const selYear=document.getElementById('rep-year')?.value||(allYears[0]||String(new Date().getFullYear()));
+  const mode=document.getElementById('rep-mode')?.value||'monthly';
+  let h=`<div class="sh"><div class="sh-title" style="color:var(--gold)">📈 Rapports</div></div>`;
+  h+=`<div class="period-sel">
+    <span class="plabel">Année :</span>
+    <select id="rep-year" onchange="renderReport()">
+      ${allYears.length?allYears.map(y=>`<option value="${y}" ${y===selYear?'selected':''}>${y}</option>`).join(''):`<option>${new Date().getFullYear()}</option>`}
+    </select>
+    <span class="plabel">Vue :</span>
+    <select id="rep-mode" onchange="renderReport()">
+      <option value="monthly" ${mode==='monthly'?'selected':''}>Mensuel</option>
+      <option value="yearly"  ${mode==='yearly'?'selected':''}>Annuel</option>
+    </select>
+  </div>`;
+  h += mode==='yearly' ? buildYearly(allYears) : buildMonthly(selYear);
+  document.getElementById('page-report').innerHTML=h;
+}
+
+const fy=(arr,y)=>arr.filter(l=>l.date.startsWith(y));
+const MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+function buildMonthly(year){
+  const fuel=fy(S.fuel,year), oil=fy(S.oil,year);
+  const tFL=fuel.reduce((s,l)=>s+l.liters,0);
+  const tFP=fuel.reduce((s,l)=>s+(l.totalPrice||0),0);
+  const tOL=oil.reduce((s,l)=>s+l.liters,0);
+  const tOP=oil.reduce((s,l)=>s+(l.totalPrice||0),0);
+  const cons=calcFuelCons(fuel);
+
+  let h=`<div class="rsection">
+    <div class="rsection-title">Résumé annuel — ${year}</div>
+    <div class="rrow"><span class="rrow-label">Total essence</span><span class="rrow-val" style="color:var(--red)">${tFL.toFixed(2)} L</span></div>
+    <div class="rrow"><span class="rrow-label">Coût essence</span><span class="rrow-val" style="color:var(--gold)">${fmtMoney(tFP)}</span></div>
+    <div class="rrow"><span class="rrow-label">Bidons huile achetés</span><span class="rrow-val" style="color:var(--purple)">${oil.length} (${tOL.toFixed(1)} L)</span></div>
+    <div class="rrow"><span class="rrow-label">Coût huile</span><span class="rrow-val" style="color:var(--gold)">${fmtMoney(tOP)}</span></div>
+    <div class="rrow"><span class="rrow-label">Dépense totale</span><span class="rrow-val" style="color:var(--gold);font-size:1.35rem">${fmtMoney(tFP+tOP)}</span></div>
+    <div class="rrow"><span class="rrow-label">Consommation essence</span><span class="rrow-val" style="color:var(--red)">${cons?cons.toFixed(2)+' L / 100 km':'Données insuffisantes'}</span></div>
+    <div class="rrow"><span class="rrow-label">Pleins effectués</span><span class="rrow-val">${fuel.length}</span></div>
+  </div>`;
+
+  h+=`<div class="rsection"><div class="rsection-title">Détail mensuel — ${year}</div>`;
+  let any=false;
+  for(let m=0;m<12;m++){
+    const mm=String(m+1).padStart(2,'0');
+    const mF=fuel.filter(l=>l.date.slice(5,7)===mm);
+    const mO=oil.filter(l=>l.date.slice(5,7)===mm);
+    if(!mF.length&&!mO.length) continue;
+    any=true;
+    const mFL=mF.reduce((s,l)=>s+l.liters,0);
+    const mFP=mF.reduce((s,l)=>s+(l.totalPrice||0),0);
+    const mOP=mO.reduce((s,l)=>s+(l.totalPrice||0),0);
+    const mCons=calcFuelCons(mF);
+    h+=`<div class="mrow">
+      <div class="mrow-left">
+        <div class="mrow-name">${MONTHS[m]}</div>
+        <div class="mrow-sub">${mF.length} plein(s)${mO.length?' · '+mO.length+' bidon(s) huile':''}</div>
+      </div>
+      <div class="mrow-stats">
+        <div class="mstat"><span class="mstat-val" style="color:var(--red)">${mFL.toFixed(1)} L</span><span class="mstat-lbl">essence</span></div>
+        ${mCons?`<div class="mstat"><span class="mstat-val" style="color:var(--sub)">${mCons.toFixed(1)}</span><span class="mstat-lbl">L/100</span></div>`:''}
+        <div class="mstat"><span class="mstat-val" style="color:var(--gold)">${fmtMoney(mFP+mOP)}</span><span class="mstat-lbl">total</span></div>
+      </div>
+    </div>`;
+  }
+  if(!any) h+=`<div style="color:var(--muted);font-size:.9rem;padding:.5rem 0">Aucune donnée pour ${year}</div>`;
+  h+=`</div>`;
+  return h;
+}
+
+function buildYearly(years){
+  if(!years.length) return `<div class="empty">Aucune donnée</div>`;
+  let h=`<div class="rsection"><div class="rsection-title">Comparaison annuelle</div>`;
+  years.forEach(y=>{
+    const fuel=fy(S.fuel,y), oil=fy(S.oil,y);
+    const tFP=fuel.reduce((s,l)=>s+(l.totalPrice||0),0);
+    const tOP=oil.reduce((s,l)=>s+(l.totalPrice||0),0);
+    const tFL=fuel.reduce((s,l)=>s+l.liters,0);
+    const cons=calcFuelCons(fuel);
+    h+=`<div class="mrow" style="margin-bottom:8px">
+      <div class="mrow-left">
+        <div class="mrow-name" style="font-size:1.15rem;font-family:'Barlow Condensed',sans-serif;font-weight:800">${y}</div>
+        <div class="mrow-sub">${fuel.length} pleins · ${oil.length} bidons huile</div>
+      </div>
+      <div class="mrow-stats">
+        <div class="mstat"><span class="mstat-val" style="color:var(--red)">${tFL.toFixed(0)} L</span><span class="mstat-lbl">essence</span></div>
+        <div class="mstat"><span class="mstat-val" style="color:var(--sub)">${cons?cons.toFixed(2):'—'}</span><span class="mstat-lbl">L/100km</span></div>
+        <div class="mstat"><span class="mstat-val" style="color:var(--gold)">${fmtMoney(tFP+tOP)}</span><span class="mstat-lbl">total</span></div>
+      </div>
+    </div>`;
+  });
+  h+=`</div>`;
+  return h;
+}
+
+// ══════════════════════════════ SETTINGS
+function renderSettings(){
+  const avg=avgKmPerOil();
+  let h=`<div class="sh"><div class="sh-title" style="color:var(--blue)">⚙️ Réglages</div></div>
+  <div class="ssection">
+    <div class="ssection-title" style="color:var(--orange)">🔔 Seuil d'alerte huile</div>
+    <div class="sdesc">À partir de combien de km voulez-vous être alerté ?${avg?`<br>📊 Votre moyenne calculée : <strong style="color:var(--purple)">${avg.toLocaleString('fr')} km / bidon</strong>. Recommandé : <strong>${Math.round(avg*.8).toLocaleString('fr')} km</strong> (80%).`:''}</div>
+    <div class="frow" style="gap:11px">
+      <input type="number" id="s-alertkm" step="50" value="${S.oilAlertKm}" style="max-width:140px;--fc:var(--orange)"/>
+      <span style="color:var(--muted);font-size:.9rem">km</span>
+      <button class="btn btn-sm btn-oo" onclick="saveAlertKm()">Enregistrer</button>
+    </div>
+    ${avg?`<button class="btn btn-sm btn-op" style="margin-top:12px" onclick="setRecommendedAlert()">✨ Utiliser la valeur recommandée (${Math.round(avg*.8).toLocaleString('fr')} km)</button>`:''}
+  </div>
+
+  <div class="ssection">
+    <div class="ssection-title" style="color:var(--gold)">💰 Prix par défaut</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:6px">
+      <div><div style="font-size:.78rem;color:var(--muted);margin-bottom:6px">Essence (${S.currency}/L)</div><input type="number" id="s-fuelp" step="0.001" value="${S.fuelPricePerL}" style="--fc:var(--gold)"/></div>
+      <div><div style="font-size:.78rem;color:var(--muted);margin-bottom:6px">Huile (${S.currency}/L)</div><input type="number" id="s-oilp" step="0.001" value="${S.oilPricePerL}" style="--fc:var(--purple)"/></div>
+    </div>
+    <button class="btn btn-sm btn-og" style="margin-top:13px" onclick="savePrices()">Enregistrer les prix</button>
+  </div>
+
+  <div class="ssection">
+    <div class="ssection-title" style="color:var(--gold)">📤 Sauvegarde</div>
+    <div class="sdesc">Exportez en JSON — importez depuis n'importe quel appareil.</div>
+    <div style="display:flex;gap:11px;flex-wrap:wrap">
+      <button class="btn btn-sm btn-og" onclick="exportData()">📤 Exporter JSON</button>
+      <button class="btn btn-sm btn-om" onclick="document.getElementById('imp').click()">📥 Importer JSON</button>
+      <input type="file" id="imp" accept=".json" style="display:none" onchange="importData(event)"/>
+    </div>
+  </div>
+
+  <div class="ssection" style="border-color:#ff3c5f33">
+    <div class="ssection-title" style="color:var(--red)">🗑 Réinitialisation</div>
+    <div class="sdesc">Action irréversible — toutes les données seront supprimées.</div>
+    <button class="btn btn-sm btn-or" onclick="clearAll()">Supprimer toutes les données</button>
+  </div>`;
+  document.getElementById('page-settings').innerHTML=h;
+}
+
+function saveAlertKm(){const v=parseInt(document.getElementById('s-alertkm').value);if(v>0){S.oilAlertKm=v;save();showToast('✅ Seuil sauvegardé');renderAll();}}
+function setRecommendedAlert(){const avg=avgKmPerOil();if(avg){S.oilAlertKm=Math.round(avg*.8);save();showToast('✅ Seuil recommandé appliqué');renderAll();}}
+function savePrices(){
+  const fp=parseFloat(document.getElementById('s-fuelp').value);
+  const op=parseFloat(document.getElementById('s-oilp').value);
+  if(fp>0)S.fuelPricePerL=fp; if(op>0)S.oilPricePerL=op;
+  save();showToast('✅ Prix sauvegardés');renderAll();
+}
+function exportData(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));
+  a.download='mototrack_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  showToast('📤 Export réussi !');
+}
+function importData(e){
+  const r=new FileReader();
+  r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.fuel&&d.oil){S=Object.assign(S,d);save();renderAll();showToast('✅ Import réussi !');}else alert('Fichier invalide !');}catch{alert('Erreur de lecture !');}};
+  r.readAsText(e.target.files[0]);e.target.value='';
+}
+function clearAll(){if(!confirm('Confirmer la suppression ?'))return;S.fuel=[];S.oil=[];S.alertHistory=[];save();renderAll();showToast('🗑 Données supprimées');}
+
+// ══════════════════════════════ MODAL FORMS
+function openModal(type){
+  editId=null;modalType=type;
+  const isO=type==='oil';
+  document.getElementById('modal-title').style.color=isO?'var(--purple)':'var(--red)';
+  document.getElementById('modal-title').textContent=isO?'🟣 Nouveau Bidon Huile':'⛽ Nouveau Plein Essence';
+  document.getElementById('modal-box').style.borderColor=isO?'#a855f744':'#ff3c5f44';
+  document.getElementById('modal-body').innerHTML=isO?oilForm({}):fuelForm({});
+  document.getElementById('modal-overlay').style.display='flex';
+}
+function openEdit(type,id){
+  const arr=type==='fuel'?S.fuel:S.oil;
+  const l=arr.find(x=>x.id===id);if(!l)return;
+  editId=id;modalType=type;
+  const isO=type==='oil';
+  document.getElementById('modal-title').style.color=isO?'var(--purple)':'var(--red)';
+  document.getElementById('modal-title').textContent=isO?'✏️ Modifier bidon':'✏️ Modifier plein';
+  document.getElementById('modal-box').style.borderColor=isO?'#a855f744':'#ff3c5f44';
+  document.getElementById('modal-body').innerHTML=isO?oilForm(l):fuelForm(l);
+  document.getElementById('modal-overlay').style.display='flex';
+}
+
+function fuelForm(l){
+  const today=new Date().toISOString().slice(0,10);
+  return `
+    <div class="field"><label>Compteur (km)</label><div class="frow"><input type="number" id="f-km" value="${l.km||''}" placeholder="ex: 12450" style="--fc:var(--red)"/><span class="unit">km</span></div></div>
+    <div class="field"><label>Litres d'essence</label><div class="frow"><input type="number" id="f-liters" step="0.01" value="${l.liters||''}" placeholder="ex: 5.50" oninput="syncFuelTotal()" style="--fc:var(--red)"/><span class="unit">L</span></div></div>
+    <div class="field"><label>Prix / litre</label><div class="frow"><input type="number" id="f-ppl" step="0.001" value="${l.pricePerL||S.fuelPricePerL}" oninput="syncFuelTotal()" style="--fc:var(--red)"/><span class="unit">${S.currency}/L</span></div></div>
+    <div class="field"><label>— ou — Montant payé (calcule les litres)</label><div class="frow"><input type="number" id="f-total" step="0.001" value="${l.totalPrice||''}" placeholder="ex: 10.000" oninput="syncFuelLiters()" style="--fc:var(--red)"/><span class="unit">${S.currency}</span></div></div>
+    <div class="field"><label>Date</label><input type="date" id="f-date" value="${l.date||today}" style="--fc:var(--red)"/></div>
+    <div class="field"><label>Note (optionnel)</label><input type="text" id="f-note" value="${l.note||''}" placeholder="ex: Station Shell..." style="--fc:var(--red)"/></div>
+    <div class="modal-btns"><button class="btn btn-red" onclick="saveFuel()">✓ Enregistrer</button><button class="btn btn-om" onclick="closeModal()">Annuler</button></div>`;
+}
+
+function oilForm(l){
+  const today=new Date().toISOString().slice(0,10);
+  return `
+    <div class="hint">🟣 Enregistrez chaque bidon acheté. Le système prédit automatiquement quand acheter le prochain et vous alerte avant que le témoin s'allume.</div>
+    <div class="field"><label>Compteur (km)</label><div class="frow"><input type="number" id="o-km" value="${l.km||''}" placeholder="ex: 12450" style="--fc:var(--purple)"/><span class="unit">km</span></div></div>
+    <div class="field"><label>Contenance du bidon</label><div class="frow"><input type="number" id="o-liters" step="0.1" value="${l.liters||1}" style="--fc:var(--purple)"/><span class="unit">L</span></div></div>
+    <div class="field"><label>Prix payé (optionnel)</label><div class="frow"><input type="number" id="o-total" step="0.001" value="${l.totalPrice||''}" placeholder="ex: 12.000" style="--fc:var(--purple)"/><span class="unit">${S.currency}</span></div></div>
+    <div class="field"><label>Date</label><input type="date" id="o-date" value="${l.date||today}" style="--fc:var(--purple)"/></div>
+    <div class="field"><label>Note (optionnel)</label><input type="text" id="o-note" value="${l.note||''}" placeholder="ex: Bidon 1L Total 2T..." style="--fc:var(--purple)"/></div>
+    <div class="modal-btns"><button class="btn btn-purple" onclick="saveOil()">✓ Enregistrer</button><button class="btn btn-om" onclick="closeModal()">Annuler</button></div>`;
+}
+
+function syncFuelTotal(){const l=parseFloat(document.getElementById('f-liters')?.value||0);const p=parseFloat(document.getElementById('f-ppl')?.value||S.fuelPricePerL);const tf=document.getElementById('f-total');if(l>0&&p>0&&tf)tf.value=(l*p).toFixed(3);}
+function syncFuelLiters(){const t=parseFloat(document.getElementById('f-total')?.value||0);const p=parseFloat(document.getElementById('f-ppl')?.value||S.fuelPricePerL);const lf=document.getElementById('f-liters');if(t>0&&p>0&&lf)lf.value=(t/p).toFixed(2);}
+
+function saveFuel(){
+  const km=parseFloat(document.getElementById('f-km')?.value);
+  const liters=parseFloat(document.getElementById('f-liters')?.value);
+  const date=document.getElementById('f-date')?.value;
+  const note=document.getElementById('f-note')?.value.trim()||'';
+  const totalPrice=parseFloat(document.getElementById('f-total')?.value)||null;
+  const pricePerL=parseFloat(document.getElementById('f-ppl')?.value)||null;
+  if(!km||!liters||!date){showToast('⚠️ Remplissez les champs obligatoires !');return;}
+  if(editId){const i=S.fuel.findIndex(x=>x.id===editId);if(i!==-1)S.fuel[i]={...S.fuel[i],km,liters,date,note,totalPrice,pricePerL};showToast('✅ Modifié !');}
+  else{S.fuel.push({id:uid(),km,liters,date,note,totalPrice,pricePerL});showToast('✅ Enregistré !');}
+  save();checkAndFireAlerts();closeModal();renderAll();
+}
+
+function saveOil(){
+  const km=parseFloat(document.getElementById('o-km')?.value);
+  const liters=parseFloat(document.getElementById('o-liters')?.value)||1;
+  const date=document.getElementById('o-date')?.value;
+  const note=document.getElementById('o-note')?.value.trim()||'';
+  const totalPrice=parseFloat(document.getElementById('o-total')?.value)||null;
+  if(!km||!date){showToast('⚠️ Remplissez les champs obligatoires !');return;}
+  if(editId){const i=S.oil.findIndex(x=>x.id===editId);if(i!==-1)S.oil[i]={...S.oil[i],km,liters,date,note,totalPrice};showToast('✅ Modifié !');}
+  else{S.oil.push({id:uid(),km,liters,date,note,totalPrice});showToast('✅ Enregistré !');}
+  save();closeModal();renderAll();
+}
+
+function closeModal(){document.getElementById('modal-overlay').style.display='none';editId=null;}
+function overlayClick(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+function delLog(type,id){
+  if(!confirm('Supprimer cet enregistrement ?'))return;
+  if(type==='fuel')S.fuel=S.fuel.filter(l=>l.id!==id);
+  else S.oil=S.oil.filter(l=>l.id!==id);
+  save();renderAll();showToast('🗑 Supprimé');
+}
+
+// ══════════════════════════════ TABS
+function switchTab(tab){
+  currentTab=tab;
+  ['dashboard','fuel','oil','alerts','report','settings'].forEach(t=>{
+    document.getElementById('page-'+t).style.display=t===tab?'block':'none';
+    const el=document.getElementById('tab-'+t);
+    if(el)el.classList.toggle('active',t===tab);
+  });
+  renderAll();
+}
+
+// ══════════════════════════════ INIT
+function renderAll(){renderDashboard();renderFuel();renderOil();renderAlerts();renderReport();renderSettings();}
+load();
+loadTheme();
+checkAndFireAlerts();
+renderAll();
+switchTab('dashboard');
+</script>
+</body>
+</html>
