@@ -8,12 +8,18 @@
 <style>
 :root{
   --bg:#0a0a0f; --bg2:#111118; --bg3:#18181f; --bg4:#1e1e28;
-  --red:#ff3c5f; --teal:#00c9a7; --gold:#ffc845;
+  --red:#ff3c5f; --teal:#00c9a7; --gold:#e6a800;
   --blue:#4d8af0; --purple:#a855f7; --orange:#ff8c42;
   --muted:#60607a; --text:#eeeef8; --sub:#9898b8; --border:#22222e;
 }
+html.light{
+  --bg:#f0f4f8; --bg2:#ffffff; --bg3:#e8eef5; --bg4:#dde5ef;
+  --red:#d92b4b; --teal:#009e82; --gold:#c47e00;
+  --blue:#2d6fd6; --purple:#8b36d6; --orange:#d96a1a;
+  --muted:#7a8499; --text:#1a1e2e; --sub:#4a5068; --border:#c8d3e0;
+}
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-size:18px;line-height:1.6;}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-size:18px;line-height:1.6;transition:background .25s,color .25s;}
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
 
@@ -22,11 +28,12 @@ html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'B
 .brand{display:flex;align-items:center;gap:13px;}
 .brand-icon{width:46px;height:46px;background:var(--red);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
 .brand-name{font-family:'Barlow Condensed',sans-serif;font-size:1.8rem;font-weight:900;letter-spacing:1px;color:#fff;line-height:1;}
+html.light .brand-name{color:#1a1e2e;}
 .brand-sub{font-size:0.75rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
 .hdr-btns{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end;}
 
 /* TABS */
-.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.2rem;overflow-x:auto;}
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.2rem;overflow-x:auto;transition:background .25s;}
 .tab{background:none;border:none;border-bottom:3px solid transparent;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1rem;letter-spacing:1px;text-transform:uppercase;padding:15px 19px;cursor:pointer;white-space:nowrap;transition:all .2s;}
 .tab.active{color:var(--red);border-bottom-color:var(--red);}
 .tab.tt.active{color:var(--teal);border-bottom-color:var(--teal);}
@@ -47,7 +54,7 @@ html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'B
 .btn-or{background:transparent;border-color:var(--red);color:var(--red);}
 .btn-op{background:transparent;border-color:var(--purple);color:var(--purple);}
 .btn-oo{background:transparent;border-color:var(--orange);color:var(--orange);}
-.btn-om{background:transparent;border-color:#444;color:#888;}
+.btn-om{background:transparent;border-color:var(--border);color:var(--muted);}
 .btn:hover{opacity:.82;transform:translateY(-1px);}
 
 /* CARDS */
@@ -65,12 +72,18 @@ html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'B
 
 /* ALERTS */
 .alert{border-radius:14px;padding:15px 19px;margin-bottom:1.6rem;font-size:0.95rem;display:flex;gap:13px;align-items:flex-start;line-height:1.6;}
-.a-red   {background:#ff3c5f1a;border:1px solid #ff3c5f55;color:#ffaab8;}
-.a-orange{background:#ff8c421a;border:1px solid #ff8c4255;color:#ffbb88;}
-.a-yellow{background:#ffc8451a;border:1px solid #ffc84555;color:#ffe099;}
-.a-purple{background:#a855f71a;border:1px solid #a855f755;color:#cc88ff;}
-.a-teal  {background:#00c9a71a;border:1px solid #00c9a755;color:#55eecc;}
-.a-blue  {background:#4d8af01a;border:1px solid #4d8af055;color:#88bbff;}
+.a-red   {background:#ff3c5f18;border:1px solid #ff3c5f55;color:#c0001e;}
+.a-orange{background:#ff8c4218;border:1px solid #ff8c4255;color:#b35500;}
+.a-yellow{background:#ffc84518;border:1px solid #ffc84555;color:#8a6000;}
+.a-purple{background:#a855f718;border:1px solid #a855f755;color:#7422c2;}
+.a-teal  {background:#00c9a718;border:1px solid #00c9a755;color:#007a64;}
+.a-blue  {background:#4d8af018;border:1px solid #4d8af055;color:#1a4fa0;}
+html.light .a-red   {background:#fde8ec;border-color:#f5a0b0;color:#9b001a;}
+html.light .a-orange{background:#fef0e6;border-color:#f5c09a;color:#8a3d00;}
+html.light .a-yellow{background:#fef8e6;border-color:#f5dd9a;color:#664a00;}
+html.light .a-purple{background:#f4eafd;border-color:#cc99f0;color:#5c1a9e;}
+html.light .a-teal  {background:#e4faf6;border-color:#80ddd0;color:#005c4a;}
+html.light .a-blue  {background:#e8f0fd;border-color:#9bbaf5;color:#12368a;}
 .alert-icon{font-size:1.3rem;flex-shrink:0;margin-top:1px;}
 .alert-body{flex:1;}
 .alert-title{font-weight:700;font-size:1rem;margin-bottom:3px;}
@@ -126,10 +139,11 @@ html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'B
 input[type=number],input[type=text],input[type=date],select{
   width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;
   padding:12px 15px;color:var(--text);font-family:'Barlow',sans-serif;
-  font-size:1rem;outline:none;transition:border-color .2s;-webkit-appearance:none;
+  font-size:1rem;outline:none;transition:border-color .2s,background .25s;-webkit-appearance:none;
 }
+html.light input[type=number],html.light input[type=text],html.light input[type=date],html.light select{background:var(--bg3);}
 input:focus,select:focus{border-color:var(--fc,var(--red));}
-select option{background:var(--bg2);}
+select option{background:var(--bg2);color:var(--text);}
 .modal-btns{display:flex;gap:13px;margin-top:1.6rem;}
 .hint{background:var(--bg);border-radius:10px;padding:11px 15px;font-size:.85rem;color:var(--muted);margin-bottom:1.2rem;line-height:1.5;}
 .divider{height:1px;background:var(--border);margin:1.3rem 0;}
@@ -169,6 +183,16 @@ select option{background:var(--bg2);}
 /* PREDICTION BOX */
 .pred-box{background:linear-gradient(135deg,var(--bg3),var(--bg4));border:1px solid var(--orange)33;border-radius:18px;padding:1.4rem;margin-bottom:1.7rem;}
 
+/* THEME TOGGLE */
+.theme-btn{
+  background:var(--bg3);border:1.5px solid var(--border);border-radius:99px;
+  color:var(--text);cursor:pointer;font-size:1.1rem;padding:6px 13px;
+  display:flex;align-items:center;gap:7px;transition:all .2s;
+  font-family:'Barlow',sans-serif;font-size:.85rem;font-weight:600;
+  white-space:nowrap;flex-shrink:0;
+}
+.theme-btn:hover{background:var(--bg4);}
+
 .empty{color:var(--border);text-align:center;padding:3.5rem 0;font-size:1rem;}
 .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--teal);border-radius:12px;padding:11px 24px;font-size:.92rem;color:var(--teal);z-index:999;animation:fiu .3s ease;white-space:nowrap;pointer-events:none;}
 @keyframes fiu{from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
@@ -194,6 +218,7 @@ select option{background:var(--bg2);}
     </div>
   </div>
   <div class="hdr-btns">
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">🌙 Sombre</button>
     <button class="btn btn-sm btn-red"  onclick="openModal('fuel')">+ Essence</button>
     <button class="btn btn-sm btn-op"   onclick="openModal('oil')">+ Huile</button>
   </div>
@@ -229,6 +254,22 @@ select option{background:var(--bg2);}
 <div class="toast" id="toast" style="display:none"></div>
 
 <script>
+// ══════════════════════════════ THEME
+function toggleTheme(){
+  const isLight=document.documentElement.classList.toggle('light');
+  localStorage.setItem('mototrack_theme', isLight?'light':'dark');
+  document.getElementById('theme-btn').textContent=isLight?'🌙 Sombre':'☀️ Clair';
+}
+function loadTheme(){
+  const t=localStorage.getItem('mototrack_theme')||'dark';
+  if(t==='light'){
+    document.documentElement.classList.add('light');
+    document.getElementById('theme-btn').textContent='🌙 Sombre';
+  } else {
+    document.getElementById('theme-btn').textContent='☀️ Clair';
+  }
+}
+
 // ══════════════════════════════ STATE
 let S = {
   fuel:[],        // {id,km,liters,totalPrice,pricePerL,date,note}
@@ -831,6 +872,7 @@ function switchTab(tab){
 // ══════════════════════════════ INIT
 function renderAll(){renderDashboard();renderFuel();renderOil();renderAlerts();renderReport();renderSettings();}
 load();
+loadTheme();
 checkAndFireAlerts();
 renderAll();
 switchTab('dashboard');
