@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ovetto 50cc 2T - Suivi dépenses & entretien</title>
-    <script src="https://cdn.tailwindcss.com">
-    </script>
+
+    <!-- Tailwind & Chart.js -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -65,6 +67,29 @@
             user-select: none;
             -webkit-user-select: none;
             overscroll-behavior: none;
+        }
+        .toast {
+            animation: toast-in 0.3s ease-out, toast-out 0.3s ease-in forwards;
+            animation-delay: 0s, 2.5s;
+            z-index: 100;
+        }
+        @keyframes toast-in {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes toast-out {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
         }
         .ripple {
             position: relative;
@@ -160,6 +185,20 @@
 </head>
 <body class="min-h-screen text-slate-100 pb-24">
 
+    <!-- TOAST CONTAINER -->
+    <div id="toastContainer" class="fixed top-4 right-4 left-4 z-[100] flex flex-col items-center gap-2 pointer-events-none"></div>
+
+    <!-- CONFIRM DIALOG -->
+    <div id="confirmDialog" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-overlay" style="background: rgba(0,0,0,0.7);">
+        <div class="bg-dark-800 rounded-2xl w-full max-w-xs p-5 modal-content border border-dark-500/50 shadow-2xl text-center">
+            <p id="confirmMessage" class="text-white text-sm mb-5"></p>
+            <div class="flex gap-3">
+                <button id="confirmYes" class="flex-1 bg-accent-red hover:bg-red-600 text-white font-bold py-2.5 rounded-xl text-sm transition-all">Oui</button>
+                <button id="confirmNo" class="flex-1 bg-dark-600 hover:bg-dark-500 text-white font-bold py-2.5 rounded-xl text-sm transition-all">Non</button>
+            </div>
+        </div>
+    </div>
+
     <!-- HEADER -->
     <header class="sticky top-0 z-40 bg-dark-900/80 backdrop-blur-xl border-b border-dark-500/50 px-4 py-3">
         <div class="flex items-center justify-between max-w-lg mx-auto">
@@ -209,7 +248,8 @@
         </div>
     </nav>
 
-    <!-- MODALS -->
+    <!-- MODALS (Add Expense, Odometer, Maintenance, Settings, Prediction) -->
+    <!-- Modal Ajouter Dépense -->
     <div id="modalAddExpense" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-overlay" style="background: rgba(0,0,0,0.7);">
         <div class="bg-dark-800 rounded-2xl w-full max-w-md p-5 modal-content border border-dark-500/50 shadow-2xl max-h-[85vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-5">
@@ -220,11 +260,7 @@
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-1.5">Type de dépense</label>
                     <select id="expenseType" required class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-sm focus:outline-none transition-colors" onchange="onExpenseTypeChange()">
-                        <option value="Essence">⛽ Essence</option>
-                        <option value="Huile moteur 2T">🛢️ Huile moteur 2T</option>
-                        <option value="Pièces détachées">🔧 Pièces détachées</option>
-                        <option value="Lavage">🧼 Lavage</option>
-                        <option value="Assurance">📋 Assurance</option>
+                        <!-- Rempli dynamiquement -->
                     </select>
                 </div>
                 <div>
@@ -236,12 +272,11 @@
                     <div class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-sm font-bold">
                         <span id="litersPreviewValue">0.0</span> L
                     </div>
-                    <p class="text-xs text-slate-500 mt-1">Basé sur le prix du litre dans les paramètres</p>
                 </div>
                 <div id="fullTankContainer" class="hidden">
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" id="fullTankCheckbox" class="w-4 h-4 rounded bg-dark-600 border-dark-400 text-accent-blue focus:ring-accent-blue">
-                        <span class="text-sm text-slate-300">Réservoir plein (pour calculer la consommation)</span>
+                        <span class="text-sm text-slate-300">Réservoir plein (pour consommation)</span>
                     </label>
                 </div>
                 <div>
@@ -249,83 +284,94 @@
                     <input type="date" id="expenseDate" required class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-sm focus:outline-none transition-colors">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Compteur kilométrique (km)</label>
-                    <input type="number" id="expenseOdometer" min="0" step="1" placeholder="Facultatif - ex: 12500" class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-sm focus:outline-none transition-colors placeholder-slate-500">
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Compteur (km)</label>
+                    <input type="number" id="expenseOdometer" min="0" step="1" placeholder="Facultatif" class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-sm focus:outline-none transition-colors placeholder-slate-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Note (optionnelle)</label>
-                    <textarea id="expenseNote" rows="2" placeholder="Détails supplémentaires..." class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-sm focus:outline-none transition-colors placeholder-slate-500 resize-none"></textarea>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Note</label>
+                    <textarea id="expenseNote" rows="2" placeholder="Détails..." class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-sm focus:outline-none transition-colors placeholder-slate-500 resize-none"></textarea>
                 </div>
-                <button type="submit" class="w-full bg-gradient-to-r from-accent-blue to-accent-cyan text-white font-bold py-3.5 rounded-xl text-base hover:shadow-lg hover:shadow-accent-blue/25 transition-all ripple">✅ Ajouter la dépense</button>
+                <button type="submit" class="w-full bg-gradient-to-r from-accent-blue to-accent-cyan text-white font-bold py-3.5 rounded-xl text-base hover:shadow-lg hover:shadow-accent-blue/25 transition-all ripple">✅ Ajouter</button>
             </form>
         </div>
     </div>
 
+    <!-- Modal Odomètre -->
     <div id="modalOdometer" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-overlay" style="background: rgba(0,0,0,0.7);">
         <div class="bg-dark-800 rounded-2xl w-full max-w-md p-5 modal-content border border-dark-500/50 shadow-2xl">
             <div class="flex items-center justify-between mb-5">
-                <h3 class="text-lg font-bold text-white">Mettre à jour le compteur</h3>
+                <h3 class="text-lg font-bold text-white">Compteur</h3>
                 <button onclick="closeModal('modalOdometer')" class="w-9 h-9 rounded-full bg-dark-600 hover:bg-dark-500 flex items-center justify-center text-slate-300 transition-colors text-lg">✕</button>
             </div>
             <form onsubmit="handleUpdateOdometer(event)" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Relevé actuel (km)</label>
-                    <input type="number" id="newOdometer" required min="0" step="1" placeholder="Saisir le kilométrage" class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-lg font-bold text-center focus:outline-none transition-colors placeholder-slate-500">
-                    <p class="text-xs text-slate-500 mt-2 text-center">Actuel : <span id="currentOdoDisplay" class="text-accent-cyan font-bold">0</span> km</p>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Relevé (km)</label>
+                    <input type="number" id="newOdometer" required min="0" step="1" class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-lg font-bold text-center focus:outline-none transition-colors">
+                    <p class="text-xs text-slate-500 mt-2">Actuel : <span id="currentOdoDisplay" class="text-accent-cyan font-bold">0</span> km</p>
                 </div>
-                <button type="submit" class="w-full bg-gradient-to-r from-accent-blue to-accent-cyan text-white font-bold py-3.5 rounded-xl text-base hover:shadow-lg hover:shadow-accent-blue/25 transition-all ripple">💾 Enregistrer</button>
+                <button type="submit" class="w-full bg-gradient-to-r from-accent-blue to-accent-cyan text-white font-bold py-3.5 rounded-xl text-base transition-all ripple">💾 Mettre à jour</button>
             </form>
         </div>
     </div>
 
+    <!-- Modal Entretien -->
     <div id="modalMaintenance" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-overlay" style="background: rgba(0,0,0,0.7);">
         <div class="bg-dark-800 rounded-2xl w-full max-w-md p-5 modal-content border border-dark-500/50 shadow-2xl">
             <div class="flex items-center justify-between mb-5">
-                <h3 class="text-lg font-bold text-white">Enregistrer un entretien</h3>
+                <h3 class="text-lg font-bold text-white">Entretien</h3>
                 <button onclick="closeModal('modalMaintenance')" class="w-9 h-9 rounded-full bg-dark-600 hover:bg-dark-500 flex items-center justify-center text-slate-300 transition-colors text-lg">✕</button>
             </div>
             <form onsubmit="handleRecordMaintenance(event)" class="space-y-4">
                 <input type="hidden" id="maintenancePartKey">
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-1.5">Pièce</label>
-                    <p id="maintenancePartName" class="text-white font-bold text-base bg-dark-700 rounded-xl px-4 py-3"></p>
+                    <p id="maintenancePartName" class="text-white font-bold bg-dark-700 rounded-xl px-4 py-3"></p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Date de l'entretien</label>
-                    <input type="date" id="maintenanceDate" required class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-sm focus:outline-none transition-colors">
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Date</label>
+                    <input type="date" id="maintenanceDate" required class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-sm">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Kilométrage lors de l'entretien (km)</label>
-                    <input type="number" id="maintenanceOdometer" required min="0" step="1" class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-lg font-bold text-center focus:outline-none transition-colors">
-                    <p class="text-xs text-slate-500 mt-2 text-center">Compteur actuel : <span id="maintenanceCurrentOdo" class="text-accent-cyan font-bold">0</span> km</p>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Kilométrage</label>
+                    <input type="number" id="maintenanceOdometer" required min="0" step="1" class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-lg font-bold text-center">
+                    <p class="text-xs text-slate-500 mt-2">Actuel : <span id="maintenanceCurrentOdo" class="text-accent-cyan font-bold">0</span> km</p>
                 </div>
-                <button type="submit" class="w-full bg-gradient-to-r from-accent-green to-emerald-500 text-white font-bold py-3.5 rounded-xl text-base hover:shadow-lg hover:shadow-accent-green/25 transition-all ripple">✅ Confirmer l'entretien</button>
+                <button type="submit" class="w-full bg-gradient-to-r from-accent-green to-emerald-500 text-white font-bold py-3.5 rounded-xl text-base transition-all ripple">✅ Confirmer</button>
             </form>
         </div>
     </div>
 
+    <!-- Modal Paramètres -->
     <div id="modalSettings" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-overlay" style="background: rgba(0,0,0,0.7);">
-        <div class="bg-dark-800 rounded-2xl w-full max-w-md p-5 modal-content border border-dark-500/50 shadow-2xl">
+        <div class="bg-dark-800 rounded-2xl w-full max-w-md p-5 modal-content border border-dark-500/50 shadow-2xl max-h-[85vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-5">
                 <h3 class="text-lg font-bold text-white">⚙️ Paramètres</h3>
                 <button onclick="closeModal('modalSettings')" class="w-9 h-9 rounded-full bg-dark-600 hover:bg-dark-500 flex items-center justify-center text-slate-300 transition-colors text-lg">✕</button>
             </div>
             <div class="space-y-5">
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Prix du litre d'essence (DT)</label>
-                    <input type="number" id="settingsPrixEssence" min="0.1" step="0.001" placeholder="ex: 2.450" class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-sm focus:outline-none transition-colors placeholder-slate-500">
-                    <p class="text-xs text-slate-500 mt-1">Utilisé pour calculer les litres et la consommation</p>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Prix litre essence (DT)</label>
+                    <input type="number" id="settingsPrixEssence" min="0.1" step="0.001" placeholder="ex: 2.450" class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-sm">
                 </div>
                 <div class="flex gap-3">
-                    <button onclick="saveSettings()" class="flex-1 bg-accent-blue hover:bg-blue-600 text-white font-bold py-3 rounded-xl text-sm transition-all ripple">💾 Enregistrer</button>
-                    <button onclick="closeModal('modalSettings')" class="flex-1 bg-dark-600 hover:bg-dark-500 text-white font-bold py-3 rounded-xl text-sm transition-all ripple">Annuler</button>
+                    <button onclick="saveSettings()" class="flex-1 bg-accent-blue text-white font-bold py-3 rounded-xl text-sm">💾 Enregistrer</button>
+                    <button onclick="closeModal('modalSettings')" class="flex-1 bg-dark-600 text-white font-bold py-3 rounded-xl text-sm">Annuler</button>
                 </div>
-                <hr class="border-dark-500/50 my-4">
+                <hr class="border-dark-500/50">
+                <div>
+                    <p class="text-sm font-medium text-slate-300 mb-3">🏷️ Catégories personnalisées</p>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="newCategoryName" placeholder="Nom catégorie" class="flex-1 bg-dark-700 border border-dark-500 rounded-xl px-3 py-2 text-white text-sm">
+                        <button onclick="addCustomCategory()" class="bg-accent-blue text-white px-4 py-2 rounded-xl text-sm">+ Ajouter</button>
+                    </div>
+                    <div id="customCategoriesList" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                </div>
+                <hr class="border-dark-500/50">
                 <div class="space-y-3">
-                    <p class="text-sm font-medium text-slate-300">💾 Sauvegarde & restauration</p>
+                    <p class="text-sm font-medium text-slate-300">💾 Sauvegarde</p>
                     <div class="flex gap-3">
-                        <button onclick="exportData()" class="flex-1 bg-dark-700 hover:bg-dark-600 text-white font-bold py-3 rounded-xl text-sm transition-all ripple border border-dark-500/40">📤 Exporter JSON</button>
-                        <label for="importFileInput" class="flex-1 bg-dark-700 hover:bg-dark-600 text-white font-bold py-3 rounded-xl text-sm transition-all ripple border border-dark-500/40 cursor-pointer text-center">📥 Importer JSON</label>
+                        <button onclick="exportData()" class="flex-1 bg-dark-700 text-white font-bold py-3 rounded-xl text-sm border border-dark-500/40">📤 Exporter JSON</button>
+                        <label for="importFileInput" class="flex-1 bg-dark-700 text-white font-bold py-3 rounded-xl text-sm border border-dark-500/40 cursor-pointer text-center">📥 Importer JSON</label>
                         <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="importData(event)">
                     </div>
                 </div>
@@ -333,22 +379,22 @@
         </div>
     </div>
 
+    <!-- Modal Prédiction -->
     <div id="modalPrediction" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-overlay" style="background: rgba(0,0,0,0.7);">
         <div class="bg-dark-800 rounded-2xl w-full max-w-md p-5 modal-content border border-dark-500/50 shadow-2xl">
             <div class="flex items-center justify-between mb-5">
-                <h3 class="text-lg font-bold text-white">🔮 Prédiction de distance</h3>
+                <h3 class="text-lg font-bold text-white">🔮 Prédiction</h3>
                 <button onclick="closeModal('modalPrediction')" class="w-9 h-9 rounded-full bg-dark-600 hover:bg-dark-500 flex items-center justify-center text-slate-300 transition-colors text-lg">✕</button>
             </div>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Montant d'essence (DT)</label>
-                    <input type="number" id="predictionAmount" min="0.5" step="0.5" placeholder="ex: 10" class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-lg font-bold text-center focus:outline-none transition-colors placeholder-slate-500">
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Montant (DT)</label>
+                    <input type="number" id="predictionAmount" min="0.5" step="0.5" placeholder="ex: 10" class="w-full bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 text-white text-lg font-bold text-center">
                 </div>
-                <button onclick="calculatePrediction()" class="w-full bg-gradient-to-r from-accent-blue to-accent-cyan text-white font-bold py-3.5 rounded-xl text-base hover:shadow-lg hover:shadow-accent-blue/25 transition-all ripple">📏 Estimer la distance</button>
+                <button onclick="calculatePrediction()" class="w-full bg-gradient-to-r from-accent-blue to-accent-cyan text-white font-bold py-3.5 rounded-xl text-base transition-all ripple">📏 Estimer</button>
                 <div id="predictionResult" class="hidden bg-dark-700 rounded-xl p-4 text-center">
                     <p class="text-sm text-slate-400">Distance estimée :</p>
                     <p class="text-3xl font-extrabold text-accent-cyan mt-1"><span id="predictedKm">0</span> km</p>
-                    <p class="text-xs text-slate-500 mt-2">Basé sur la consommation moyenne et le prix au litre</p>
                 </div>
             </div>
         </div>
@@ -356,6 +402,7 @@
 
     <script>
         (function() {
+            // ---------- DATA ----------
             const DEFAULT_DATA = {
                 settings: {
                     totalOdometer: 0,
@@ -365,73 +412,109 @@
                         courroie: { km: 0, date: null },
                         galets: { km: 0, date: null },
                         transmissionOil: { km: 0, date: null },
-                    }
+                    },
+                    customCategories: [] // { name: string }
                 },
                 expenses: []
             };
 
             const MAINTENANCE_INTERVALS = {
-                bougie: { name: 'Bougie', icon: '🕯️', interval: 5000, key: 'bougie' },
-                courroie: { name: 'Courroie', icon: '🔄', interval: 10000, key: 'courroie' },
-                galets: { name: 'Galets', icon: '⚙️', interval: 10000, key: 'galets' },
-                transmissionOil: { name: 'Huile de boîte', icon: '🛢️', interval: 5000, key: 'transmissionOil' },
+                bougie: { name: 'Bougie', icon: '🕯️', interval: 5000 },
+                courroie: { name: 'Courroie', icon: '🔄', interval: 10000 },
+                galets: { name: 'Galets', icon: '⚙️', interval: 10000 },
+                transmissionOil: { name: 'Huile boîte', icon: '🛢️', interval: 5000 },
             };
+
+            const DEFAULT_CATEGORIES = [
+                { value: 'Essence', label: '⛽ Essence' },
+                { value: 'Huile moteur 2T', label: '🛢️ Huile moteur 2T' },
+                { value: 'Pièces détachées', label: '🔧 Pièces détachées' },
+                { value: 'Lavage', label: '🧼 Lavage' },
+                { value: 'Assurance', label: '📋 Assurance' },
+            ];
 
             let appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
             let currentView = 'dashboard';
+            let consumptionChart = null;
 
-            function saveData() { try { localStorage.setItem('ovetto50_data', JSON.stringify(appData)); } catch (e) {} }
+            // ---------- STORAGE ----------
+            function saveData() { localStorage.setItem('ovetto50_data', JSON.stringify(appData)); }
 
             function loadData() {
-                try {
-                    const stored = localStorage.getItem('ovetto50_data');
-                    if (stored) {
-                        const parsed = JSON.parse(stored);
-                        appData.settings = {
-                            ...DEFAULT_DATA.settings,
-                            ...parsed.settings,
-                            lastMaintenance: { ...DEFAULT_DATA.settings.lastMaintenance, ...(parsed.settings?.lastMaintenance || {}) },
-                            prixEssence: parsed.settings?.prixEssence || 0,
-                        };
-                        appData.expenses = parsed.expenses || [];
-                    }
-                } catch (e) { appData = JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+                const stored = localStorage.getItem('ovetto50_data');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    appData.settings = {
+                        ...DEFAULT_DATA.settings,
+                        ...parsed.settings,
+                        lastMaintenance: { ...DEFAULT_DATA.settings.lastMaintenance, ...(parsed.settings?.lastMaintenance || {}) },
+                        prixEssence: parsed.settings?.prixEssence || 0,
+                        customCategories: parsed.settings?.customCategories || [],
+                    };
+                    appData.expenses = parsed.expenses || [];
+                }
             }
 
-            function formatDate(d) { if(!d) return '--'; try { return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{year:'numeric',month:'short',day:'numeric'}); }catch(e){return d;} }
+            // ---------- TOAST & CONFIRM ----------
+            function showToast(message, type = 'info') {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                const bg = type === 'success' ? 'bg-accent-green/90' : type === 'error' ? 'bg-accent-red/90' : 'bg-accent-blue/90';
+                toast.className = `toast px-5 py-3 rounded-xl text-white text-sm font-medium shadow-lg ${bg} pointer-events-auto`;
+                toast.textContent = message;
+                container.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+            }
+
+            function showConfirm(message) {
+                return new Promise((resolve) => {
+                    const dialog = document.getElementById('confirmDialog');
+                    document.getElementById('confirmMessage').textContent = message;
+                    dialog.classList.remove('hidden');
+                    dialog.classList.add('flex');
+                    document.body.style.overflow = 'hidden';
+
+                    const cleanup = () => {
+                        dialog.classList.add('hidden');
+                        dialog.classList.remove('flex');
+                        document.body.style.overflow = '';
+                        document.getElementById('confirmYes').removeEventListener('click', onYes);
+                        document.getElementById('confirmNo').removeEventListener('click', onNo);
+                    };
+                    const onYes = () => { cleanup(); resolve(true); };
+                    const onNo = () => { cleanup(); resolve(false); };
+                    document.getElementById('confirmYes').addEventListener('click', onYes);
+                    document.getElementById('confirmNo').addEventListener('click', onNo);
+                });
+            }
+
+            // ---------- HELPERS ----------
+            function formatDate(d) { return d ? new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{year:'numeric',month:'short',day:'numeric'}) : '--'; }
             function formatCurrency(a) { return parseFloat(a).toFixed(1)+' DT'; }
             function getTodayStr() { return new Date().toISOString().split('T')[0]; }
             function generateId() { return 'exp_'+Date.now()+'_'+Math.random().toString(36).substr(2,6); }
             function getTotalExpenses() { return appData.expenses.reduce((s,e)=>s+parseFloat(e.amount||0),0); }
             function getKmSinceLastMaintenance(k) { return Math.max(0, appData.settings.totalOdometer - (appData.settings.lastMaintenance[k]?.km||0)); }
-            function getMaintenanceRemaining(k) { return Math.max(0, MAINTENANCE_INTERVALS[k].interval - getKmSinceLastMaintenance(k)); }
             function getMaintenancePercentage(k) { return Math.min(100, Math.round((getKmSinceLastMaintenance(k)/MAINTENANCE_INTERVALS[k].interval)*100)); }
             function getMaintenanceStatus(k) {
                 const p = getMaintenancePercentage(k);
-                if(p>=100) return {label:'Dépassé !',color:'text-accent-red',bg:'bg-red-500/20',border:'border-red-500/40',dot:true};
-                if(p>=85) return {label:'Approche',color:'text-accent-amber',bg:'bg-amber-500/20',border:'border-amber-500/40',dot:true};
-                if(p>=60) return {label:'Mi-parcours',color:'text-accent-cyan',bg:'bg-cyan-500/20',border:'border-cyan-500/40',dot:false};
-                return {label:'Bon état',color:'text-accent-green',bg:'bg-green-500/20',border:'border-green-500/40',dot:false};
+                if(p>=100) return {label:'Dépassé',color:'text-accent-red',border:'border-red-500/40',dot:true};
+                if(p>=85) return {label:'Approche',color:'text-accent-amber',border:'border-amber-500/40',dot:true};
+                if(p>=60) return {label:'Mi-parcours',color:'text-accent-cyan',border:'border-cyan-500/40'};
+                return {label:'Bon état',color:'text-accent-green',border:'border-green-500/40'};
             }
 
-            function getFullTankExpenses() {
-                return appData.expenses
-                    .filter(e => e.type === 'Essence' && e.fullTank && e.odometer > 0 && e.liters > 0)
-                    .sort((a,b) => a.odometer - b.odometer);
+            function getAllExpenseTypes() {
+                const custom = appData.settings.customCategories.map(c => ({ value: c.name, label: '🏷️ ' + c.name }));
+                return [...DEFAULT_CATEGORIES, ...custom];
             }
 
-            function getAverageConsumption() {
-                const fullTanks = getFullTankExpenses();
-                if (fullTanks.length < 2) return null;
-                const last = fullTanks[fullTanks.length-1];
-                const prev = fullTanks[fullTanks.length-2];
-                const dist = last.odometer - prev.odometer;
-                if (dist <= 0) return null;
-                const liters = last.liters;
-                const conso = (liters / dist) * 100;
-                return { liters, dist, conso: conso.toFixed(2), prevOdo: prev.odometer, lastOdo: last.odometer };
+            function getExpenseIcon(type) {
+                const found = DEFAULT_CATEGORIES.find(c => c.value === type);
+                return found ? found.label.charAt(0) + ' ' : '📌 ';
             }
 
+            // ---------- NAVIGATION ----------
             function navigateTo(view) {
                 currentView = view;
                 document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
@@ -440,16 +523,40 @@
                 document.getElementById('mainContent').scrollIntoView({behavior:'smooth'});
             }
 
+            // ---------- MODALS ----------
             function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); document.body.style.overflow='hidden'; }
             function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); document.body.style.overflow=''; }
-            function openOdometerModal() { document.getElementById('newOdometer').value=appData.settings.totalOdometer; document.getElementById('currentOdoDisplay').textContent=appData.settings.totalOdometer; openModal('modalOdometer'); }
-            function openMaintenanceModal(k) { const i=MAINTENANCE_INTERVALS[k]; document.getElementById('maintenancePartKey').value=k; document.getElementById('maintenancePartName').textContent=i.icon+' '+i.name; document.getElementById('maintenanceOdometer').value=appData.settings.totalOdometer; document.getElementById('maintenanceCurrentOdo').textContent=appData.settings.totalOdometer; document.getElementById('maintenanceDate').value=getTodayStr(); openModal('modalMaintenance'); }
-            function openSettingsModal() { document.getElementById('settingsPrixEssence').value=appData.settings.prixEssence||''; openModal('modalSettings'); }
+            function openOdometerModal() {
+                document.getElementById('newOdometer').value = appData.settings.totalOdometer;
+                document.getElementById('currentOdoDisplay').textContent = appData.settings.totalOdometer;
+                openModal('modalOdometer');
+            }
+            function openMaintenanceModal(k) {
+                document.getElementById('maintenancePartKey').value = k;
+                document.getElementById('maintenancePartName').textContent = MAINTENANCE_INTERVALS[k].icon + ' ' + MAINTENANCE_INTERVALS[k].name;
+                document.getElementById('maintenanceOdometer').value = appData.settings.totalOdometer;
+                document.getElementById('maintenanceCurrentOdo').textContent = appData.settings.totalOdometer;
+                document.getElementById('maintenanceDate').value = getTodayStr();
+                openModal('modalMaintenance');
+            }
+            function openSettingsModal() {
+                document.getElementById('settingsPrixEssence').value = appData.settings.prixEssence || '';
+                renderCustomCategoriesList();
+                openModal('modalSettings');
+            }
             document.addEventListener('click',function(e){ if(e.target.classList.contains('modal-overlay')) closeModal(e.target.id); });
 
+            // ---------- EXPENSE FORM ----------
+            function populateExpenseTypeSelect() {
+                const select = document.getElementById('expenseType');
+                if (!select) return;
+                const types = getAllExpenseTypes();
+                select.innerHTML = types.map(t => `<option value="${t.value}">${t.label}</option>`).join('');
+                document.getElementById('fullTankContainer').classList.toggle('hidden', select.value !== 'Essence');
+            }
+
             function onExpenseTypeChange() {
-                const type = document.getElementById('expenseType').value;
-                document.getElementById('fullTankContainer').classList.toggle('hidden', type !== 'Essence');
+                document.getElementById('fullTankContainer').classList.toggle('hidden', document.getElementById('expenseType').value !== 'Essence');
                 updateLitersPreview();
             }
 
@@ -470,32 +577,28 @@
                 const date = document.getElementById('expenseDate').value;
                 const odometer = parseInt(document.getElementById('expenseOdometer').value)||0;
                 const note = document.getElementById('expenseNote').value.trim();
-                const fullTank = type==='Essence' ? document.getElementById('fullTankCheckbox').checked : false;
+                const fullTank = type==='Essence' && document.getElementById('fullTankCheckbox').checked;
 
                 const expense = { id: generateId(), type, amount, date, odometer, note, fullTank, createdAt: new Date().toISOString() };
-                if(type==='Essence' && appData.settings.prixEssence>0) {
-                    expense.liters = parseFloat((amount/appData.settings.prixEssence).toFixed(2));
-                }
+                if(type==='Essence' && appData.settings.prixEssence>0) expense.liters = parseFloat((amount/appData.settings.prixEssence).toFixed(2));
                 appData.expenses.unshift(expense);
                 if(odometer > appData.settings.totalOdometer) appData.settings.totalOdometer = odometer;
-                saveData(); closeModal('modalAddExpense'); resetExpenseForm(); renderView();
-            }
-
-            function resetExpenseForm() {
-                document.getElementById('formAddExpense').reset();
-                document.getElementById('expenseDate').value = getTodayStr();
-                document.getElementById('expenseOdometer').value = '';
-                document.getElementById('expenseNote').value = '';
-                document.getElementById('fullTankCheckbox').checked = false;
-                document.getElementById('litersPreviewContainer').classList.add('hidden');
-                document.getElementById('fullTankContainer').classList.add('hidden');
+                saveData();
+                closeModal('modalAddExpense');
+                showToast('Dépense ajoutée', 'success');
+                renderView();
             }
 
             function handleUpdateOdometer(e) {
                 e.preventDefault();
                 const v = parseInt(document.getElementById('newOdometer').value);
-                if(v >= appData.settings.totalOdometer) { appData.settings.totalOdometer=v; saveData(); closeModal('modalOdometer'); renderView(); }
-                else alert('⚠️ Le compteur ne peut pas diminuer.');
+                if(v >= appData.settings.totalOdometer) {
+                    appData.settings.totalOdometer = v;
+                    saveData();
+                    closeModal('modalOdometer');
+                    showToast('Compteur mis à jour', 'success');
+                    renderView();
+                } else showToast('Le compteur ne peut pas diminuer', 'error');
             }
 
             function handleRecordMaintenance(e) {
@@ -503,39 +606,156 @@
                 const k = document.getElementById('maintenancePartKey').value;
                 const d = document.getElementById('maintenanceDate').value;
                 const o = parseInt(document.getElementById('maintenanceOdometer').value);
-                if(o>=0) { appData.settings.lastMaintenance[k]={km:o,date:d}; if(o>appData.settings.totalOdometer) appData.settings.totalOdometer=o; saveData(); closeModal('modalMaintenance'); renderView(); }
+                appData.settings.lastMaintenance[k] = { km: o, date: d };
+                if(o > appData.settings.totalOdometer) appData.settings.totalOdometer = o;
+                saveData();
+                closeModal('modalMaintenance');
+                showToast('Entretien enregistré', 'success');
+                renderView();
             }
 
-            function deleteExpense(id) { if(confirm('Supprimer ?')) { appData.expenses = appData.expenses.filter(e=>e.id!==id); saveData(); renderView(); } }
-            function saveSettings() { appData.settings.prixEssence = parseFloat(document.getElementById('settingsPrixEssence').value)||0; saveData(); closeModal('modalSettings'); renderView(); }
-            function exportData() { const b=new Blob([JSON.stringify(appData,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='ovetto50_'+new Date().toISOString().slice(0,10)+'.json'; a.click(); }
-            function importData(e) { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=function(ev){ try{ const d=JSON.parse(ev.target.result); if(d.settings&&Array.isArray(d.expenses)){ if(confirm('Remplacer les données ?')){appData=d; saveData(); renderView(); alert('✅ Importé.');} } else alert('❌ Fichier invalide.'); }catch(ex){alert('❌ Erreur JSON.');} }; r.readAsText(f); e.target.value=''; }
+            async function deleteExpense(id) {
+                const confirmed = await showConfirm('Supprimer cette dépense ?');
+                if (confirmed) {
+                    appData.expenses = appData.expenses.filter(e=>e.id!==id);
+                    saveData();
+                    showToast('Dépense supprimée', 'success');
+                    renderView();
+                }
+            }
+
+            function saveSettings() {
+                appData.settings.prixEssence = parseFloat(document.getElementById('settingsPrixEssence').value)||0;
+                saveData();
+                closeModal('modalSettings');
+                showToast('Paramètres enregistrés', 'success');
+                renderView();
+            }
+
+            // ---------- CUSTOM CATEGORIES ----------
+            function renderCustomCategoriesList() {
+                const list = document.getElementById('customCategoriesList');
+                if (!list) return;
+                list.innerHTML = appData.settings.customCategories.length === 0 ?
+                    '<p class="text-xs text-slate-500 text-center py-2">Aucune catégorie personnalisée</p>' :
+                    appData.settings.customCategories.map((c, idx) => `
+                    <div class="flex items-center justify-between bg-dark-700 px-3 py-2 rounded-xl">
+                        <span class="text-sm">🏷️ ${c.name}</span>
+                        <button onclick="removeCustomCategory(${idx})" class="text-accent-red text-sm">✕</button>
+                    </div>`).join('');
+            }
+
+            function addCustomCategory() {
+                const input = document.getElementById('newCategoryName');
+                const name = input.value.trim();
+                if (!name) return showToast('Nom requis', 'error');
+                if (appData.settings.customCategories.some(c => c.name === name) || DEFAULT_CATEGORIES.some(c => c.value === name)) {
+                    return showToast('Catégorie déjà existante', 'error');
+                }
+                appData.settings.customCategories.push({ name });
+                saveData();
+                input.value = '';
+                renderCustomCategoriesList();
+                showToast('Catégorie ajoutée', 'success');
+            }
+
+            function removeCustomCategory(idx) {
+                appData.settings.customCategories.splice(idx, 1);
+                saveData();
+                renderCustomCategoriesList();
+                showToast('Catégorie supprimée', 'success');
+            }
+
+            // ---------- IMPORT/EXPORT ----------
+            function exportData() {
+                const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'ovetto50_'+new Date().toISOString().slice(0,10)+'.json';
+                a.click();
+                showToast('Exporté', 'success');
+            }
+
+            async function importData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async function(ev) {
+                    try {
+                        const imported = JSON.parse(ev.target.result);
+                        if (imported.settings && Array.isArray(imported.expenses)) {
+                            const confirmed = await showConfirm('Remplacer toutes les données ?');
+                            if (confirmed) {
+                                appData = imported;
+                                saveData();
+                                showToast('Importé avec succès', 'success');
+                                renderView();
+                            }
+                        } else showToast('Fichier invalide', 'error');
+                    } catch (e) { showToast('Erreur JSON', 'error'); }
+                };
+                reader.readAsText(file);
+                event.target.value = '';
+            }
+
+            // ---------- CONSUMPTION & PREDICTION ----------
+            function getFullTankExpenses() {
+                return appData.expenses
+                    .filter(e => e.type === 'Essence' && e.fullTank && e.odometer > 0 && e.liters > 0)
+                    .sort((a,b) => a.odometer - b.odometer);
+            }
+
+            function getAverageConsumption() {
+                const tanks = getFullTankExpenses();
+                if (tanks.length < 2) return null;
+                const last = tanks[tanks.length-1];
+                const prev = tanks[tanks.length-2];
+                const dist = last.odometer - prev.odometer;
+                if (dist <= 0) return null;
+                const conso = (last.liters / dist) * 100;
+                return { liters: last.liters, dist, conso: conso.toFixed(2), prevOdo: prev.odometer, lastOdo: last.odometer };
+            }
+
+            function getConsumptionHistory() {
+                const tanks = getFullTankExpenses();
+                const history = [];
+                for (let i = 1; i < tanks.length; i++) {
+                    const dist = tanks[i].odometer - tanks[i-1].odometer;
+                    if (dist > 0) {
+                        history.push({
+                            label: tanks[i].odometer + 'km',
+                            conso: parseFloat(((tanks[i].liters / dist) * 100).toFixed(2))
+                        });
+                    }
+                }
+                return history.slice(-10);
+            }
 
             function calculatePrediction() {
                 const amount = parseFloat(document.getElementById('predictionAmount').value)||0;
                 const avg = getAverageConsumption();
                 const prix = appData.settings.prixEssence;
-                if(!avg || prix<=0) {
+                if (!avg || prix <= 0) {
                     document.getElementById('predictionResult').classList.remove('hidden');
                     document.getElementById('predictedKm').textContent = '?';
-                    alert('Données insuffisantes. Il faut au moins deux pleins enregistrés et un prix au litre.');
+                    showToast('Données insuffisantes', 'error');
                     return;
                 }
                 const liters = amount / prix;
-                const km = (liters / (avg.conso/100)).toFixed(0);
+                const km = (liters / (avg.conso / 100)).toFixed(0);
                 document.getElementById('predictionResult').classList.remove('hidden');
                 document.getElementById('predictedKm').textContent = km;
             }
 
+            // ---------- RENDER ----------
             function renderView() {
                 updateHeaderOdometer();
                 const main = document.getElementById('mainContent');
                 switch(currentView) {
-                    case 'dashboard': main.innerHTML = renderDashboard(); break;
-                    case 'expenses': main.innerHTML = renderExpenses(); break;
+                    case 'dashboard': main.innerHTML = renderDashboard(); initConsumptionChart(); break;
+                    case 'expenses': main.innerHTML = renderExpenses(); bindExpenseActions(); break;
                     case 'maintenance': main.innerHTML = renderMaintenance(); break;
                 }
-                bindExpenseActions();
             }
 
             function updateHeaderOdometer() {
@@ -544,51 +764,97 @@
             }
 
             function bindExpenseActions() {
-                document.querySelectorAll('.btn-delete-expense').forEach(b=>b.addEventListener('click',function(e){ e.stopPropagation(); deleteExpense(this.getAttribute('data-id')); }));
+                document.querySelectorAll('.btn-delete-expense').forEach(b => {
+                    b.addEventListener('click', function(e) { e.stopPropagation(); deleteExpense(this.getAttribute('data-id')); });
+                });
             }
 
             function renderDashboard() {
                 const total = getTotalExpenses();
                 const odo = appData.settings.totalOdometer;
                 const avg = getAverageConsumption();
-                const alerts = Object.keys(MAINTENANCE_INTERVALS).filter(k=>getMaintenanceStatus(k).dot);
+                const alerts = Object.keys(MAINTENANCE_INTERVALS).filter(k => getMaintenanceStatus(k).dot);
+                const now = new Date();
+                const thisMonth = now.getMonth();
+                const thisYear = now.getFullYear();
+                const expensesThisMonth = appData.expenses.filter(e => {
+                    const d = new Date(e.date + 'T00:00:00');
+                    return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+                }).reduce((s,e) => s + parseFloat(e.amount), 0);
+                const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
+                const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
+                const expensesLastMonth = appData.expenses.filter(e => {
+                    const d = new Date(e.date + 'T00:00:00');
+                    return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+                }).reduce((s,e) => s + parseFloat(e.amount), 0);
+                const monthDiff = expensesLastMonth > 0 ? ((expensesThisMonth - expensesLastMonth) / expensesLastMonth * 100).toFixed(0) : null;
                 const recent = appData.expenses.slice(0,5);
+                const history = getConsumptionHistory();
+
                 return `
                 <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div class="bg-dark-800 rounded-2xl p-4 border border-dark-500/40"><span class="text-xs text-slate-400">Total dépenses</span><p class="text-2xl font-extrabold text-white">${formatCurrency(total)}</p></div>
-                    <div class="bg-dark-800 rounded-2xl p-4 border border-dark-500/40 cursor-pointer" onclick="openOdometerModal()"><span class="text-xs text-slate-400">Compteur</span><p class="text-2xl font-extrabold text-accent-cyan">${odo.toLocaleString('fr-FR')} km</p></div>
+                    <div class="bg-dark-800 rounded-2xl p-4 border border-dark-500/40 card-hover">
+                        <span class="text-xs text-slate-400">Total dépenses</span>
+                        <p class="text-2xl font-extrabold text-white">${formatCurrency(total)}</p>
+                    </div>
+                    <div class="bg-dark-800 rounded-2xl p-4 border border-dark-500/40 card-hover cursor-pointer" onclick="openOdometerModal()">
+                        <span class="text-xs text-slate-400">Compteur</span>
+                        <p class="text-2xl font-extrabold text-accent-cyan">${odo.toLocaleString('fr-FR')} km</p>
+                    </div>
+                </div>
+                <div class="bg-dark-800 rounded-2xl p-4 border border-dark-500/40 mb-4">
+                    <h3 class="text-sm font-bold text-white mb-1">📅 Ce mois</h3>
+                    <p class="text-2xl font-extrabold text-white">${formatCurrency(expensesThisMonth)}</p>
+                    ${monthDiff !== null ? `<p class="text-xs text-slate-400 mt-1">${monthDiff > 0 ? '+' : ''}${monthDiff}% vs mois dernier (${formatCurrency(expensesLastMonth)})</p>` : `<p class="text-xs text-slate-500">Mois dernier : ${formatCurrency(expensesLastMonth)}</p>`}
                 </div>
                 ${avg ? `
                 <div class="bg-dark-800 rounded-2xl p-4 border border-dark-500/40 mb-4">
-                    <div class="flex items-center justify-between"><h3 class="text-sm font-bold text-white">⛽ Consommation moyenne</h3><span class="text-xs text-slate-400">Dernier plein</span></div>
-                    <div class="flex items-end gap-4 mt-2">
-                        <p class="text-3xl font-extrabold text-accent-cyan">${avg.conso} <span class="text-sm font-normal text-slate-400">L/100km</span></p>
-                        <p class="text-xs text-slate-400">${avg.dist} km entre ${avg.prevOdo} et ${avg.lastOdo} km</p>
-                    </div>
-                    <button onclick="openModal('modalPrediction')" class="mt-3 w-full bg-dark-700 hover:bg-dark-600 text-white font-bold py-2.5 rounded-xl text-sm transition-all ripple">🔮 Prédire la distance avec un montant</button>
-                </div>` : `
-                <div class="bg-dark-800 rounded-2xl p-4 border border-dark-500/40 mb-4 text-center text-sm text-slate-400">Ajoutez au moins deux pleins (cocher "Réservoir plein") pour calculer la consommation.</div>`}
+                    <div class="flex justify-between"><h3 class="text-sm font-bold text-white">⛽ Conso moyenne</h3><span class="text-xs text-slate-400">Dernier plein</span></div>
+                    <p class="text-3xl font-extrabold text-accent-cyan">${avg.conso} <span class="text-sm font-normal text-slate-400">L/100km</span></p>
+                    <p class="text-xs text-slate-400">${avg.dist} km (${avg.prevOdo} → ${avg.lastOdo} km)</p>
+                    <button onclick="openModal('modalPrediction')" class="mt-3 w-full bg-dark-700 py-2.5 rounded-xl text-sm font-bold">🔮 Prédire la distance</button>
+                </div>` : ''}
+                ${history.length > 1 ? `
+                <div class="bg-dark-800 rounded-2xl p-4 border border-dark-500/40 mb-4">
+                    <h3 class="text-sm font-bold text-white mb-2">📈 Historique consommation (L/100km)</h3>
+                    <canvas id="consumptionChart" height="180"></canvas>
+                </div>` : ''}
                 ${alerts.length ? `<div class="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 mb-4"><span class="pulse-dot w-3 h-3 bg-accent-red rounded-full inline-block"></span> <span class="text-sm font-bold text-accent-red">Alertes entretien</span><button onclick="navigateTo('maintenance')" class="ml-4 text-xs text-accent-blue font-bold">Voir</button></div>` : ''}
-                <div class="bg-dark-800 rounded-2xl p-4 border border-dark-500/40 mb-4"><h3 class="text-sm font-bold text-white mb-2">🕐 Dernières dépenses</h3>${recent.length?recent.map(e=>`<div class="flex justify-between text-xs py-1"><span>${e.type}${e.liters?' ('+e.liters+' L)':''}</span><span class="font-bold">${formatCurrency(e.amount)}</span></div>`).join(''):'<p class="text-sm text-slate-500">Aucune</p>'}</div>
-                <button onclick="openModal('modalAddExpense'); document.getElementById('expenseDate').value=getTodayStr();" class="w-full bg-gradient-to-r from-accent-blue to-accent-cyan text-white font-bold py-4 rounded-2xl ripple mb-6">➕ Nouvelle dépense</button>`;
+                <div class="bg-dark-800 rounded-2xl p-4 border border-dark-500/40 mb-4">
+                    <h3 class="text-sm font-bold text-white mb-2">🕐 Dernières dépenses</h3>
+                    ${recent.length ? recent.map(e=>`<div class="flex justify-between text-xs py-1"><span>${getExpenseIcon(e.type)}${e.type}${e.liters?' ('+e.liters+' L)':''}</span><span class="font-bold">${formatCurrency(e.amount)}</span></div>`).join('') : '<p class="text-sm text-slate-500">Aucune</p>'}
+                </div>
+                <button onclick="openModal('modalAddExpense'); populateExpenseTypeSelect(); document.getElementById('expenseDate').value=getTodayStr();" class="w-full bg-gradient-to-r from-accent-blue to-accent-cyan text-white font-bold py-4 rounded-2xl ripple mb-6">➕ Nouvelle dépense</button>`;
             }
 
             function renderExpenses() {
                 return `
-                <div class="flex justify-between mb-4"><p class="text-xl font-extrabold">${formatCurrency(getTotalExpenses())}</p><button onclick="openModal('modalAddExpense'); document.getElementById('expenseDate').value=getTodayStr();" class="bg-accent-blue text-white px-4 py-2 rounded-xl text-sm">➕ Ajouter</button></div>
+                <div class="flex justify-between mb-4 items-center">
+                    <p class="text-xl font-extrabold">${formatCurrency(getTotalExpenses())}</p>
+                    <button onclick="openModal('modalAddExpense'); populateExpenseTypeSelect(); document.getElementById('expenseDate').value=getTodayStr();" class="bg-accent-blue text-white px-4 py-2 rounded-xl text-sm">➕ Ajouter</button>
+                </div>
                 <div id="expensesList" class="space-y-2 mb-6">
-                    ${appData.expenses.length?appData.expenses.map(e=>`
-                    <div class="expense-item bg-dark-800 rounded-2xl p-3 flex items-center gap-3" data-type="${e.type}">
-                        <span class="text-xl">${e.type==='Essence'?'⛽':e.type==='Huile moteur 2T'?'🛢️':e.type==='Pièces détachées'?'🔧':e.type==='Lavage'?'🧼':'📋'}</span>
-                        <div class="flex-1"><span class="font-bold text-sm">${e.type}${e.fullTank?' 🔒':''}</span><p class="text-xs text-slate-500">${formatDate(e.date)} ${e.liters?e.liters+' L':''} ${e.odometer?e.odometer+' km':''}</p></div>
+                    ${appData.expenses.length ? appData.expenses.map(e=>`
+                    <div class="expense-item bg-dark-800 rounded-2xl p-3 flex items-center gap-3">
+                        <span class="text-xl">${getExpenseIcon(e.type)}</span>
+                        <div class="flex-1">
+                            <span class="font-bold text-sm">${e.type}${e.fullTank?' 🔒':''}</span>
+                            <p class="text-xs text-slate-500">${formatDate(e.date)} ${e.liters?e.liters+' L':''} ${e.odometer?e.odometer+' km':''}</p>
+                        </div>
                         <span class="font-bold">${formatCurrency(e.amount)}</span>
                         <button data-id="${e.id}" class="btn-delete-expense w-7 h-7 bg-red-500/20 rounded-full text-red-400">🗑️</button>
-                    </div>`).join(''):'<p class="text-center py-10 text-slate-500">Aucune dépense</p>'}
+                    </div>`).join('') : '<p class="text-center py-10 text-slate-500">Aucune dépense</p>'}
                 </div>`;
             }
 
             function renderMaintenance() {
-                const parts = Object.values(MAINTENANCE_INTERVALS).map(i=>({...i, pct:getMaintenancePercentage(i.key), status:getMaintenanceStatus(i.key), lastKm:appData.settings.lastMaintenance[i.key]?.km||0, lastDate:appData.settings.lastMaintenance[i.key]?.date}));
+                const parts = Object.entries(MAINTENANCE_INTERVALS).map(([k, v]) => ({
+                    ...v, key: k,
+                    pct: getMaintenancePercentage(k),
+                    status: getMaintenanceStatus(k),
+                    lastKm: appData.settings.lastMaintenance[k]?.km||0,
+                    lastDate: appData.settings.lastMaintenance[k]?.date
+                }));
                 return `
                 <div class="bg-dark-800 rounded-2xl p-4 mb-4"><p class="text-2xl font-bold text-accent-cyan">${appData.settings.totalOdometer.toLocaleString('fr-FR')} km</p></div>
                 ${parts.map(p=>`
@@ -600,19 +866,65 @@
                 </div>`).join('')}`;
             }
 
+            function initConsumptionChart() {
+                const ctx = document.getElementById('consumptionChart');
+                if (!ctx) return;
+                if (consumptionChart) consumptionChart.destroy();
+                const history = getConsumptionHistory();
+                if (history.length < 2) return;
+                consumptionChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: history.map(h => h.label),
+                        datasets: [{
+                            label: 'L/100km',
+                            data: history.map(h => h.conso),
+                            borderColor: '#4f8cff',
+                            backgroundColor: 'rgba(79,140,255,0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#4f8cff',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { ticks: { color: '#94a3b8' }, grid: { color: '#252839' } },
+                            y: { ticks: { color: '#94a3b8' }, grid: { color: '#252839' } }
+                        }
+                    }
+                });
+            }
+
+            // ---------- INIT ----------
             function init() {
                 loadData();
+                populateExpenseTypeSelect();
                 document.getElementById('expenseDate').value = getTodayStr();
                 renderView();
-                document.getElementById('nav-dashboard').classList.add('active');
-                window.navigateTo=navigateTo; window.openModal=openModal; window.closeModal=closeModal;
-                window.openOdometerModal=openOdometerModal; window.openMaintenanceModal=openMaintenanceModal;
-                window.openSettingsModal=openSettingsModal; window.handleAddExpense=handleAddExpense;
-                window.handleUpdateOdometer=handleUpdateOdometer; window.handleRecordMaintenance=handleRecordMaintenance;
-                window.deleteExpense=deleteExpense; window.getTodayStr=getTodayStr;
-                window.onExpenseTypeChange=onExpenseTypeChange; window.updateLitersPreview=updateLitersPreview;
-                window.saveSettings=saveSettings; window.exportData=exportData; window.importData=importData;
-                window.calculatePrediction=calculatePrediction;
+                window.navigateTo = navigateTo;
+                window.openModal = openModal;
+                window.closeModal = closeModal;
+                window.openOdometerModal = openOdometerModal;
+                window.openMaintenanceModal = openMaintenanceModal;
+                window.openSettingsModal = openSettingsModal;
+                window.handleAddExpense = handleAddExpense;
+                window.handleUpdateOdometer = handleUpdateOdometer;
+                window.handleRecordMaintenance = handleRecordMaintenance;
+                window.deleteExpense = deleteExpense;
+                window.getTodayStr = getTodayStr;
+                window.onExpenseTypeChange = onExpenseTypeChange;
+                window.updateLitersPreview = updateLitersPreview;
+                window.saveSettings = saveSettings;
+                window.exportData = exportData;
+                window.importData = importData;
+                window.calculatePrediction = calculatePrediction;
+                window.populateExpenseTypeSelect = populateExpenseTypeSelect;
+                window.addCustomCategory = addCustomCategory;
+                window.removeCustomCategory = removeCustomCategory;
             }
             init();
         })();
