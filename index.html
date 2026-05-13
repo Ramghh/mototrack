@@ -333,11 +333,21 @@ const sortDesc = arr=>[...arr].sort((a,b)=>new Date(b.date)-new Date(a.date));
 const sortKm   = arr=>[...arr].sort((a,b)=>a.km-b.km);
 
 function calcFuelCons(logs){
+  // Calcul correct: on utilise les intervalles entre pleins consécutifs
+  // Chaque litre de la fill N correspond aux km parcourus depuis fill N-1
   if(logs.length<2) return null;
   const s=sortKm(logs);
-  const liters=s.slice(1).reduce((t,l)=>t+l.liters,0);
-  const km=s[s.length-1].km-s[0].km;
-  return km?((liters/km)*100):null;
+  let totalLiters=0, totalKm=0;
+  for(let i=1;i<s.length;i++){
+    const kmInterval=s[i].km-s[i-1].km;
+    // Ignorer les intervalles aberrants (>500km entre 2 pleins consécutifs)
+    // sauf si c'est normal pour la moto — on garde quand même mais on détecte
+    if(kmInterval>0 && kmInterval<2000){
+      totalLiters+=s[i].liters;
+      totalKm+=kmInterval;
+    }
+  }
+  return totalKm>0?((totalLiters/totalKm)*100):null;
 }
 
 // Average km between oil purchases
@@ -401,37 +411,48 @@ function pushAlert(type,title,text,date,km){
 }
 
 // ══════════════════════════════ DISTANCES
-// Returns fuel logs sorted by km, each with .kmDriven = km since previous fill
 function fuelWithDistances(){
   if(!S.fuel.length) return [];
   const s=sortKm(S.fuel);
   return s.map((l,i)=>{
     let kmDriven=null;
     if(i===0){
-      // Si startKm défini, distance depuis le départ
-      if(S.startKm!=null) kmDriven=Math.max(0,Math.round(l.km-S.startKm));
+      if(S.startKm!=null){
+        const d=Math.round(l.km-S.startKm);
+        kmDriven=d>0&&d<2000?d:null;
+      }
     } else {
-      kmDriven=Math.round(l.km-s[i-1].km);
+      const d=Math.round(l.km-s[i-1].km);
+      kmDriven=d>0?d:null;
     }
     return {...l, kmDriven};
   });
 }
 
-// Total km driven depuis startKm (ou depuis premier plein)
+// Total km = somme des intervalles entre pleins consécutifs (+ depuis startKm si défini)
 function totalKmDriven(){
   if(!S.fuel.length) return null;
   const s=sortKm(S.fuel);
-  const base = S.startKm!=null ? S.startKm : s[0].km;
-  const latest = s[s.length-1].km;
-  return latest>base ? latest-base : null;
+  // Si startKm défini: du départ jusqu'au dernier plein
+  if(S.startKm!=null){
+    const total=s[s.length-1].km-S.startKm;
+    return total>0?total:null;
+  }
+  // Sinon: du premier au dernier plein
+  if(s.length<2) return null;
+  return s[s.length-1].km-s[0].km;
 }
 
-// Average km per fill (between fills only)
+// Moyenne km entre 2 pleins consécutifs (intervalles réels)
 function avgKmPerFill(){
   if(S.fuel.length<2) return null;
   const s=sortKm(S.fuel);
   const intervals=[];
-  for(let i=1;i<s.length;i++) intervals.push(s[i].km-s[i-1].km);
+  for(let i=1;i<s.length;i++){
+    const d=s[i].km-s[i-1].km;
+    if(d>0&&d<2000) intervals.push(d);
+  }
+  if(!intervals.length) return null;
   return Math.round(intervals.reduce((a,b)=>a+b,0)/intervals.length);
 }
 
@@ -748,7 +769,15 @@ function buildMonthly(year){
     <div class="rrow"><span class="rrow-label">Coût huile</span><span class="rrow-val" style="color:var(--gold)">${fmtMoney(tOP)}</span></div>
     <div class="rrow"><span class="rrow-label">Dépense totale</span><span class="rrow-val" style="color:var(--gold);font-size:1.35rem">${fmtMoney(tFP+tOP)}</span></div>
     <div class="rrow"><span class="rrow-label">Consommation essence</span><span class="rrow-val" style="color:var(--red)">${cons?cons.toFixed(2)+' L / 100 km':'Données insuffisantes'}</span></div>
-    ${(()=>{const s=sortKm(fuel);const km=s.length>1?s[s.length-1].km-s[0].km:null;const avg=fuel.length>1?Math.round(km/(fuel.length-1)):null;return km?`<div class="rrow"><span class="rrow-label">km parcourus (année)</span><span class="rrow-val" style="color:var(--teal)">${km.toLocaleString('fr')} km</span></div><div class="rrow"><span class="rrow-label">km moyen / plein</span><span class="rrow-val" style="color:var(--blue)">${avg?avg.toLocaleString('fr')+' km':''}</span></div>`:''})()}
+    ${(()=>{
+      const s=sortKm(fuel);
+      if(s.length<2) return '';
+      // km parcourus = somme des intervalles entre pleins consécutifs
+      let km=0;
+      for(let i=1;i<s.length;i++) km+=Math.max(0,s[i].km-s[i-1].km);
+      const avg=s.length>1?Math.round(km/(s.length-1)):null;
+      return `<div class="rrow"><span class="rrow-label">km parcourus (année)</span><span class="rrow-val" style="color:var(--teal)">${km.toLocaleString('fr')} km</span></div><div class="rrow"><span class="rrow-label">km moyen / plein</span><span class="rrow-val" style="color:var(--blue)">${avg?avg.toLocaleString('fr')+' km':''}</span></div>`;
+    })()}
     <div class="rrow"><span class="rrow-label">Pleins effectués</span><span class="rrow-val">${fuel.length}</span></div>
   </div>`;
 
