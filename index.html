@@ -209,6 +209,14 @@ select option{background:var(--bg2);color:var(--text);}
 .theme-btn:hover{background:var(--bg4);}
 
 .empty{color:var(--border);text-align:center;padding:3.5rem 0;font-size:1rem;}
+
+/* KM CHIP */
+.km-chip{
+  display:inline-block;background:#00c9a720;border:1px solid #00c9a744;
+  color:var(--teal);border-radius:99px;padding:1px 9px;
+  font-size:.78rem;font-weight:700;font-family:'Barlow Condensed',sans-serif;
+  vertical-align:middle;margin-left:5px;letter-spacing:.3px;white-space:nowrap;
+}
 .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--teal);border-radius:12px;padding:11px 24px;font-size:.92rem;color:var(--teal);z-index:999;animation:fiu .3s ease;white-space:nowrap;pointer-events:none;}
 @keyframes fiu{from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
 
@@ -390,6 +398,31 @@ function pushAlert(type,title,text,date,km){
   save();
 }
 
+// ══════════════════════════════ DISTANCES
+// Returns fuel logs sorted by km, each with .kmDriven = km since previous fill
+function fuelWithDistances(){
+  if(S.fuel.length<2) return sortKm(S.fuel).map(l=>({...l,kmDriven:null}));
+  const s=sortKm(S.fuel);
+  return s.map((l,i)=>({
+    ...l,
+    kmDriven: i===0 ? null : Math.round(l.km - s[i-1].km)
+  }));
+}
+
+// Total km driven (from first to last fill)
+function totalKmDriven(){
+  if(S.fuel.length<2) return null;
+  const s=sortKm(S.fuel);
+  return s[s.length-1].km - s[0].km;
+}
+
+// Average km per fill
+function avgKmPerFill(){
+  const total=totalKmDriven();
+  if(!total||S.fuel.length<2) return null;
+  return Math.round(total/(S.fuel.length-1));
+}
+
 // ══════════════════════════════ UI COMPONENTS
 function card(label,val,unit,sub,ac){
   return `<div class="card" style="--ac:${ac}">
@@ -412,11 +445,14 @@ function gaugeBar(val,max,color,label){
   </div>`;
 }
 
-function fuelRow(l){
+function fuelRow(l, kmDriven){
   const price=l.totalPrice?`<div class="log-price">${fmtMoney(l.totalPrice)}</div>`:'';
+  const kmTag = kmDriven!=null
+    ? `<span class="km-chip">+${kmDriven.toLocaleString('fr')} km</span>`
+    : '';
   return `<div class="log" style="--ac:var(--red)">
     <div class="log-body">
-      <div class="log-title">${fmtL(l.liters)} — ${Number(l.km).toLocaleString('fr')} km</div>
+      <div class="log-title">${fmtL(l.liters)} — ${Number(l.km).toLocaleString('fr')} km ${kmTag}</div>
       <div class="log-sub">${fmtDate(l.date)}${l.pricePerL?' · '+Number(l.pricePerL).toFixed(3)+' TND/L':''}${l.note?' · '+l.note:''}</div>
     </div>
     ${price}
@@ -483,10 +519,13 @@ function renderDashboard(){
 
   // ESSENCE
   h+=`<div class="sh"><div class="sh-title" style="color:var(--red)">⛽ Essence</div></div>`;
+  const totalKm=totalKmDriven();
+  const avgKmFill=avgKmPerFill();
   h+=`<div class="cards">
     ${card('Dernier plein',lF?fmtL(lF.liters):'—','',lF?fmtDate(lF.date)+' · '+Number(lF.km).toLocaleString('fr')+' km':'Aucun enregistrement','var(--red)')}
     ${card('Consommation moy.',cons?cons.toFixed(2):'—',cons?'L / 100 km':'',cons?`sur ${S.fuel.length} pleins`:'2 pleins minimum','var(--red)')}
-    ${card('Total payé',tFP?fmtMoney(tFP):'—','',tFL.toFixed(1)+' L · '+S.fuel.length+' pleins','var(--red)')}
+    ${card('km total parcourus',totalKm?totalKm.toLocaleString('fr'):'—',totalKm?'km':'',avgKmFill?`Moy. ${avgKmFill.toLocaleString('fr')} km/plein`:'','var(--teal)')}
+    ${card('Total payé',tFP?fmtMoney(tFP):'—','',tFL.toFixed(1)+' L · '+S.fuel.length+' pleins','var(--gold)')}
   </div>`;
 
   // HUILE
@@ -536,10 +575,12 @@ function renderDashboard(){
 
   // RECENT
   h+=`<div class="sh" style="margin-top:.3rem"><div class="sh-title" style="color:var(--muted)">🕒 Activité récente</div></div>`;
+  const fuelDist=fuelWithDistances();
+  const fuelDistMap=Object.fromEntries(fuelDist.map(l=>[l.id,l.kmDriven]));
   const recent=[...fd.slice(0,3).map(l=>({...l,_t:'fuel'})),...od.slice(0,2).map(l=>({...l,_t:'oil'}))]
     .sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
   if(!recent.length) h+=`<div class="empty">Aucune donnée. Commencez par un premier plein ! 🏍️</div>`;
-  else recent.forEach(l=>{ h+=l._t==='fuel'?fuelRow(l):oilRow(l); });
+  else recent.forEach(l=>{ h+=l._t==='fuel'?fuelRow(l,fuelDistMap[l.id]):oilRow(l); });
 
   document.getElementById('page-dashboard').innerHTML=h;
   updateCalc();
@@ -557,11 +598,23 @@ function updateCalc(){
 // ══════════════════════════════ FUEL PAGE
 function renderFuel(){
   const cons=calcFuelCons(S.fuel);
-  const logs=sortDesc(S.fuel);
+  const totalKm=totalKmDriven();
+  const avgKm=avgKmPerFill();
+  const logsWithDist=fuelWithDistances().reverse(); // desc order
+
   let h=`<div class="sh"><div class="sh-title" style="color:var(--red)">⛽ Journaux Essence</div><button class="btn btn-sm btn-red" onclick="openModal('fuel')">+ Ajouter</button></div>`;
-  if(cons) h+=`<div class="cbadge" style="background:var(--red)15;border:1px solid var(--red)33"><span class="cbadge-val" style="color:var(--red)">${cons.toFixed(2)}</span><span class="cbadge-unit">L / 100 km — Consommation moyenne</span></div>`;
-  if(!logs.length) h+=`<div class="empty">Aucun enregistrement</div>`;
-  logs.forEach(l=>{ h+=fuelRow(l); });
+
+  // Stats badges
+  if(cons||totalKm){
+    h+=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.3rem">`;
+    if(cons) h+=`<div class="cbadge" style="background:var(--red)15;border:1px solid var(--red)33"><span class="cbadge-val" style="color:var(--red)">${cons.toFixed(2)}</span><span class="cbadge-unit">L/100km</span></div>`;
+    if(totalKm) h+=`<div class="cbadge" style="background:var(--teal)15;border:1px solid var(--teal)33"><span class="cbadge-val" style="color:var(--teal)">${totalKm.toLocaleString('fr')}</span><span class="cbadge-unit">km total</span></div>`;
+    if(avgKm) h+=`<div class="cbadge" style="background:var(--blue)15;border:1px solid var(--blue)33"><span class="cbadge-val" style="color:var(--blue)">${avgKm.toLocaleString('fr')}</span><span class="cbadge-unit">km/plein moy.</span></div>`;
+    h+=`</div>`;
+  }
+
+  if(!logsWithDist.length) h+=`<div class="empty">Aucun enregistrement</div>`;
+  logsWithDist.forEach(l=>{ h+=fuelRow(l, l.kmDriven); });
   document.getElementById('page-fuel').innerHTML=h;
 }
 
@@ -682,6 +735,7 @@ function buildMonthly(year){
     <div class="rrow"><span class="rrow-label">Coût huile</span><span class="rrow-val" style="color:var(--gold)">${fmtMoney(tOP)}</span></div>
     <div class="rrow"><span class="rrow-label">Dépense totale</span><span class="rrow-val" style="color:var(--gold);font-size:1.35rem">${fmtMoney(tFP+tOP)}</span></div>
     <div class="rrow"><span class="rrow-label">Consommation essence</span><span class="rrow-val" style="color:var(--red)">${cons?cons.toFixed(2)+' L / 100 km':'Données insuffisantes'}</span></div>
+    ${(()=>{const s=sortKm(fuel);const km=s.length>1?s[s.length-1].km-s[0].km:null;const avg=fuel.length>1?Math.round(km/(fuel.length-1)):null;return km?`<div class="rrow"><span class="rrow-label">km parcourus (année)</span><span class="rrow-val" style="color:var(--teal)">${km.toLocaleString('fr')} km</span></div><div class="rrow"><span class="rrow-label">km moyen / plein</span><span class="rrow-val" style="color:var(--blue)">${avg?avg.toLocaleString('fr')+' km':''}</span></div>`:''})()}
     <div class="rrow"><span class="rrow-label">Pleins effectués</span><span class="rrow-val">${fuel.length}</span></div>
   </div>`;
 
