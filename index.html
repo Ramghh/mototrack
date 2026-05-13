@@ -312,7 +312,9 @@ let S = {
   alertHistory:[], // {id,type,msg,date,km}
   fuelPricePerL:2.200,
   oilPricePerL:8.000,
-  oilAlertKm:800,   // used if no average available
+  oilAlertKm:800,
+  startKm: null,    // km du compteur au départ (ex: 15430)
+  startDate: '2025-05-06', // date de départ
   currency:'TND'
 };
 let currentTab='dashboard', editId=null, modalType=null;
@@ -401,26 +403,36 @@ function pushAlert(type,title,text,date,km){
 // ══════════════════════════════ DISTANCES
 // Returns fuel logs sorted by km, each with .kmDriven = km since previous fill
 function fuelWithDistances(){
-  if(S.fuel.length<2) return sortKm(S.fuel).map(l=>({...l,kmDriven:null}));
+  if(!S.fuel.length) return [];
   const s=sortKm(S.fuel);
-  return s.map((l,i)=>({
-    ...l,
-    kmDriven: i===0 ? null : Math.round(l.km - s[i-1].km)
-  }));
+  return s.map((l,i)=>{
+    let kmDriven=null;
+    if(i===0){
+      // Si startKm défini, distance depuis le départ
+      if(S.startKm!=null) kmDriven=Math.max(0,Math.round(l.km-S.startKm));
+    } else {
+      kmDriven=Math.round(l.km-s[i-1].km);
+    }
+    return {...l, kmDriven};
+  });
 }
 
-// Total km driven (from first to last fill)
+// Total km driven depuis startKm (ou depuis premier plein)
 function totalKmDriven(){
+  if(!S.fuel.length) return null;
+  const s=sortKm(S.fuel);
+  const base = S.startKm!=null ? S.startKm : s[0].km;
+  const latest = s[s.length-1].km;
+  return latest>base ? latest-base : null;
+}
+
+// Average km per fill (between fills only)
+function avgKmPerFill(){
   if(S.fuel.length<2) return null;
   const s=sortKm(S.fuel);
-  return s[s.length-1].km - s[0].km;
-}
-
-// Average km per fill
-function avgKmPerFill(){
-  const total=totalKmDriven();
-  if(!total||S.fuel.length<2) return null;
-  return Math.round(total/(S.fuel.length-1));
+  const intervals=[];
+  for(let i=1;i<s.length;i++) intervals.push(s[i].km-s[i-1].km);
+  return Math.round(intervals.reduce((a,b)=>a+b,0)/intervals.length);
 }
 
 // ══════════════════════════════ UI COMPONENTS
@@ -521,10 +533,11 @@ function renderDashboard(){
   h+=`<div class="sh"><div class="sh-title" style="color:var(--red)">⛽ Essence</div></div>`;
   const totalKm=totalKmDriven();
   const avgKmFill=avgKmPerFill();
+  const startInfo=S.startKm!=null?`Depuis ${Number(S.startKm).toLocaleString('fr')} km (${S.startDate||'départ'})`:avgKmFill?`Moy. ${avgKmFill.toLocaleString('fr')} km/plein`:'';
   h+=`<div class="cards">
     ${card('Dernier plein',lF?fmtL(lF.liters):'—','',lF?fmtDate(lF.date)+' · '+Number(lF.km).toLocaleString('fr')+' km':'Aucun enregistrement','var(--red)')}
     ${card('Consommation moy.',cons?cons.toFixed(2):'—',cons?'L / 100 km':'',cons?`sur ${S.fuel.length} pleins`:'2 pleins minimum','var(--red)')}
-    ${card('km total parcourus',totalKm?totalKm.toLocaleString('fr'):'—',totalKm?'km':'',avgKmFill?`Moy. ${avgKmFill.toLocaleString('fr')} km/plein`:'','var(--teal)')}
+    ${card('km parcourus',totalKm?totalKm.toLocaleString('fr'):'—',totalKm?'km':S.startKm==null?'Définir un départ':'',startInfo,'var(--teal)')}
     ${card('Total payé',tFP?fmtMoney(tFP):'—','',tFL.toFixed(1)+' L · '+S.fuel.length+' pleins','var(--gold)')}
   </div>`;
 
@@ -796,7 +809,28 @@ function buildYearly(years){
 // ══════════════════════════════ SETTINGS
 function renderSettings(){
   const avg=avgKmPerOil();
+  const totalKm=totalKmDriven();
   let h=`<div class="sh"><div class="sh-title" style="color:var(--blue)">⚙️ Réglages</div></div>
+
+  <div class="ssection" style="border-color:var(--teal)33">
+    <div class="ssection-title" style="color:var(--teal)">🏁 Point de départ du compteur</div>
+    <div class="sdesc">Entrez la valeur du compteur kilométrique au début de votre suivi (le 6 mai 2025). Tous les calculs de distance seront basés sur ce point.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:6px">Compteur de départ</div>
+        <div class="frow" style="gap:8px">
+          <input type="number" id="s-startkm" step="1" value="${S.startKm||''}" placeholder="ex: 15430" style="--fc:var(--teal)"/>
+          <span style="color:var(--muted);font-size:.85rem">km</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:6px">Date de départ</div>
+        <input type="date" id="s-startdate" value="${S.startDate||'2025-05-06'}" style="--fc:var(--teal)"/>
+      </div>
+    </div>
+    <button class="btn btn-sm btn-ot" onclick="saveStartKm()">Enregistrer le départ</button>
+    ${S.startKm!=null?`<div style="margin-top:10px;font-size:.85rem;color:var(--teal)">✅ Départ : <strong>${Number(S.startKm).toLocaleString('fr')} km</strong> le ${S.startDate||'6 mai 2025'}${totalKm?` · <strong>${totalKm.toLocaleString('fr')} km parcourus depuis</strong>`:''}.</div>`:'<div style="margin-top:10px;font-size:.82rem;color:var(--muted)">⚠️ Non défini — les distances seront calculées entre les pleins.</div>'}
+  </div>
   <div class="ssection">
     <div class="ssection-title" style="color:var(--orange)">🔔 Seuil d'alerte huile</div>
     <div class="sdesc">À partir de combien de km voulez-vous être alerté ?${avg?`<br>📊 Votre moyenne calculée : <strong style="color:var(--purple)">${avg.toLocaleString('fr')} km / bidon</strong>. Recommandé : <strong>${Math.round(avg*.8).toLocaleString('fr')} km</strong> (80%).`:''}</div>
@@ -835,6 +869,13 @@ function renderSettings(){
   document.getElementById('page-settings').innerHTML=h;
 }
 
+function saveStartKm(){
+  const v=parseInt(document.getElementById('s-startkm').value);
+  const d=document.getElementById('s-startdate').value;
+  if(v>0){ S.startKm=v; }
+  if(d){ S.startDate=d; }
+  save(); showToast('✅ Point de départ sauvegardé'); renderAll();
+}
 function saveAlertKm(){const v=parseInt(document.getElementById('s-alertkm').value);if(v>0){S.oilAlertKm=v;save();showToast('✅ Seuil sauvegardé');renderAll();}}
 function setRecommendedAlert(){const avg=avgKmPerOil();if(avg){S.oilAlertKm=Math.round(avg*.8);save();showToast('✅ Seuil recommandé appliqué');renderAll();}}
 function savePrices(){
