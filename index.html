@@ -1041,7 +1041,7 @@ async function gistPull(){
   const token=localStorage.getItem('mototrack_gh_token')||'';
   const gistId=localStorage.getItem('mototrack_gist_id')||'';
   if(!token){gistStatus('⚠️ Token manquant !','var(--red)');return;}
-  if(!gistId){gistStatus('⚠️ Gist ID manquant — faites d'abord un Push','var(--red)');return;}
+  if(!gistId){gistStatus('⚠️ Gist ID manquant — faites d&#39;abord un Push','var(--red)');return;}
   if(!confirm('Restaurer depuis Gist ? Les données locales seront remplacées.'))return;
   gistStatus('⏳ Récupération...','var(--muted)');
   try{
