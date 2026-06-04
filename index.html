@@ -335,7 +335,7 @@ let S = {
 };
 let currentTab='dashboard', editId=null, modalType=null;
 
-function save(){ localStorage.setItem('mototrack_v5',JSON.stringify(S)); }
+function save(){ localStorage.setItem('mototrack_v5',JSON.stringify(S)); scheduleAutoSync(); }
 function load(){
   try{ const d=JSON.parse(localStorage.getItem('mototrack_v5')||'null'); if(d) S=Object.assign({alertHistory:[],...S},d); }catch(e){}
 }
@@ -962,6 +962,7 @@ function renderSettings(){
       <button class="btn btn-sm btn-op" style="border-color:var(--blue);color:var(--blue)" onclick="gistPull()">&#11015;&#65039; Pull &#8212; Restaurer</button>
     </div>
     <div id="gist-status" style="margin-top:10px;font-size:.82rem;min-height:1.2em"></div>
+    <div style="margin-top:6px;font-size:.78rem;color:var(--muted)">⏱ Dernier sync : <span id="last-sync-time">${getLastSync()||'Jamais'}</span></div>
   </div>
 
   <div class="ssection" style="border-color:#ff3c5f33">
@@ -1008,16 +1009,42 @@ function clearAll(){if(!confirm('Confirmer la suppression ?'))return;S.fuel=[];S
 // ══════════════════════════════ GITHUB GIST SYNC
 function gistSaveToken(v){localStorage.setItem('mototrack_gh_token',v);}
 function gistSaveId(v){localStorage.setItem('mototrack_gist_id',v);}
+
+// ══════════════════════════════ AUTO-SYNC
+let _autoSyncTimer=null;
+const AUTO_SYNC_DELAY=60*60*1000; // 1 heure
+
+function scheduleAutoSync(){
+  const token=localStorage.getItem('mototrack_gh_token')||'';
+  const gistId=localStorage.getItem('mototrack_gist_id')||'';
+  if(!token||!gistId) return; // pas de config = pas de sync
+  if(_autoSyncTimer) clearTimeout(_autoSyncTimer);
+  _autoSyncTimer=setTimeout(async()=>{
+    await gistPush(true); // silent=true
+  }, AUTO_SYNC_DELAY);
+}
+
+function getLastSync(){
+  return localStorage.getItem('mototrack_last_sync')||null;
+}
+
+function setLastSync(){
+  const now=new Date().toLocaleString('fr');
+  localStorage.setItem('mototrack_last_sync',now);
+  // update UI if settings tab open
+  const el=document.getElementById('last-sync-time');
+  if(el) el.textContent=now;
+}
 function gistStatus(msg,color){
   const el=document.getElementById('gist-status');
   if(el) el.innerHTML=`<span style="color:${color||'var(--teal)'}">${msg}</span>`;
 }
 
-async function gistPush(){
+async function gistPush(silent=false){
   const token=localStorage.getItem('mototrack_gh_token')||'';
   let gistId=localStorage.getItem('mototrack_gist_id')||'';
-  if(!token){gistStatus('⚠️ Token manquant !','var(--red)');return;}
-  gistStatus('⏳ Envoi en cours...','var(--muted)');
+  if(!token){if(!silent)gistStatus('⚠️ Token manquant !','var(--red)');return;}
+  if(!silent)gistStatus('⏳ Envoi en cours...','var(--muted)');
   const body={files:{'mototrack_data.json':{content:JSON.stringify(S,null,2)}},description:'MotoTrack Backup',public:false};
   try{
     let url='https://api.github.com/gists';
@@ -1030,10 +1057,13 @@ async function gistPush(){
       localStorage.setItem('mototrack_gist_id',d.id);
       document.getElementById('s-gistid').value=d.id;
       gistStatus('✅ Gist créé ! ID: '+d.id,'var(--teal)');
+      setLastSync();
     } else {
-      gistStatus('✅ Sauvegardé le '+new Date().toLocaleString('fr'),'var(--teal)');
+      if(!silent)gistStatus('✅ Sauvegardé le '+new Date().toLocaleString('fr'),'var(--teal)');
+      setLastSync();
     }
-    showToast('☁️ Push réussi !');
+    if(!silent)showToast('☁️ Push réussi !');
+    else showToast('☁️ Auto-sync effectué');
   }catch(e){gistStatus('❌ Erreur réseau: '+e.message,'var(--red)');}
 }
 
@@ -1193,6 +1223,7 @@ loadTheme();
 checkAndFireAlerts();
 updateAlertBadge();
 switchTab('dashboard');
+scheduleAutoSync(); // démarrer auto-sync si token+gistId configurés
 
 // ══════════════════════════════ PWA SERVICE WORKER
 if('serviceWorker' in navigator){
