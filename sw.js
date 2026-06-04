@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mototrack-v2';
+const CACHE_NAME = 'mototrack-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -28,6 +28,17 @@ self.addEventListener('fetch', e => {
 
   e.respondWith(
     caches.match(e.request).then(cached => {
+      // Network first for HTML to always get latest
+      if (e.request.url.endsWith('.html') || e.request.url.endsWith('/')) {
+        return fetch(e.request).then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+          }
+          return response;
+        }).catch(() => cached);
+      }
+      // Cache first for other assets
       if (cached) return cached;
       return fetch(e.request).then(response => {
         if (response && response.status === 200) {
