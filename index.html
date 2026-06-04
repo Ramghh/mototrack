@@ -635,7 +635,7 @@ function renderDashboard(){
     h+=`<div class="sh"><div class="sh-title" style="color:var(--gold)">💰 Dépenses</div></div>`;
     h+=`<div class="cards">
       ${card('Total dépensé',fmtMoney(tFP+tOP),'','Essence + Huile','var(--gold)')}
-      ${cons&&tFP>0?card('Coût/100km',fmtMoney((tFP/tFL)*(cons/100)),'TND/100km','Essence uniquement','var(--gold)'):''}
+      ${cons&&tFP>0?card('Coût/100km',fmtMoney(totalKm>0?(tFP/totalKm)*100:0),'TND/100km','Essence uniquement','var(--gold)'):''}
     </div>`;
   }
 
