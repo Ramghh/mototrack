@@ -21,6 +21,10 @@
 <meta name="application-name" content="MotoTrack"/>
 
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet"/>
+<!-- Firebase Compat -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 :root{
   --bg:#0a0a0f; --bg2:#111118; --bg3:#18181f; --bg4:#1e1e28;
@@ -248,6 +252,25 @@ select option{background:var(--bg2);color:var(--text);}
 </head>
 <body>
 
+<!-- ═══════════════ LOGIN OVERLAY ═══════════════ -->
+<div id="login-overlay" style="position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="width:100%;max-width:420px;background:var(--bg2);border:1px solid var(--border);border-radius:22px;padding:2.2rem;">
+    <div style="text-align:center;margin-bottom:2rem;">
+      <div style="width:56px;height:56px;background:var(--red);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 1rem;">⚡</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:2.2rem;font-weight:900;color:var(--text);">MotoTrack</div>
+      <div style="font-size:.78rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">Connexion requise</div>
+    </div>
+    <div id="login-error" style="display:none;background:#ff3c5f18;border:1px solid #ff3c5f55;color:var(--red);border-radius:10px;padding:10px 14px;font-size:.9rem;margin-bottom:1rem;text-align:center;"></div>
+    <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="votre@email.com" style="--fc:var(--red)" onkeydown="if(event.key==='Enter')loginUser()"/></div>
+    <div class="field"><label>Mot de passe</label><input type="password" id="login-password" placeholder="••••••••" style="--fc:var(--red)" onkeydown="if(event.key==='Enter')loginUser()"/></div>
+    <div style="display:flex;gap:10px;margin-top:1.4rem;">
+      <button class="btn btn-red" id="login-btn" style="flex:1" onclick="loginUser()">Se connecter</button>
+      <button class="btn btn-or" style="flex:1" onclick="registerUser()">Créer compte</button>
+    </div>
+    <div style="margin-top:1rem;font-size:.78rem;color:var(--muted);text-align:center;">Vos données sont privées et synchronisées sur le cloud ☁️</div>
+  </div>
+</div>
+
 <div class="header">
   <div class="brand">
     <div class="brand-icon">⚡</div>
@@ -260,6 +283,7 @@ select option{background:var(--bg2);color:var(--text);}
     <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">🌙 Sombre</button>
     <button class="btn btn-sm btn-red"  onclick="openModal('fuel')">+ Essence</button>
     <button class="btn btn-sm btn-op"   onclick="openModal('oil')">+ Huile</button>
+    <button class="btn btn-sm btn-om" onclick="logoutUser()" title="Déconnexion" id="logout-btn" style="display:none">🚪</button>
   </div>
 </div>
 
@@ -305,6 +329,100 @@ select option{background:var(--bg2);color:var(--text);}
 <div class="toast" id="toast" style="display:none"></div>
 
 <script>
+// ══════════════════════════════ FIREBASE
+const firebaseConfig = {
+  apiKey: "AIzaSyBmQqqvfJui-COVWd4fHpBaDwIHDusyPG0",
+  authDomain: "mototrack-9c47c.firebaseapp.com",
+  projectId: "mototrack-9c47c",
+  storageBucket: "mototrack-9c47c.firebasestorage.app",
+  messagingSenderId: "976211973529",
+  appId: "1:976211973529:web:91ad6b7a915276fe71ef08"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+let currentUser = null;
+
+function showLoginError(msg){
+  const el=document.getElementById('login-error');
+  el.textContent=msg; el.style.display='block';
+}
+function hideLoginError(){
+  document.getElementById('login-error').style.display='none';
+}
+function getAuthError(code){
+  const map={
+    'auth/user-not-found':'Utilisateur introuvable.',
+    'auth/wrong-password':'Mot de passe incorrect.',
+    'auth/invalid-email':'Email invalide.',
+    'auth/email-already-in-use':'Email déjà utilisé.',
+    'auth/weak-password':'Mot de passe trop court (min 6 caractères).',
+    'auth/invalid-credential':'Email ou mot de passe incorrect.',
+    'auth/too-many-requests':'Trop de tentatives. Réessayez plus tard.',
+    'auth/network-request-failed':'Erreur réseau. Vérifiez votre connexion.',
+  };
+  return map[code]||'Erreur: '+code;
+}
+
+async function loginUser(){
+  const email=document.getElementById('login-email').value.trim();
+  const password=document.getElementById('login-password').value;
+  if(!email||!password){showLoginError('Remplissez tous les champs.');return;}
+  hideLoginError();
+  document.getElementById('login-btn').disabled=true;
+  document.getElementById('login-btn').textContent='⏳...';
+  try{
+    await auth.signInWithEmailAndPassword(email,password);
+  }catch(e){
+    showLoginError(getAuthError(e.code));
+    document.getElementById('login-btn').disabled=false;
+    document.getElementById('login-btn').textContent='Se connecter';
+  }
+}
+
+async function registerUser(){
+  const email=document.getElementById('login-email').value.trim();
+  const password=document.getElementById('login-password').value;
+  if(!email||!password){showLoginError('Remplissez tous les champs.');return;}
+  if(password.length<6){showLoginError('Mot de passe: 6 caractères minimum.');return;}
+  hideLoginError();
+  try{
+    await auth.createUserWithEmailAndPassword(email,password);
+  }catch(e){
+    showLoginError(getAuthError(e.code));
+  }
+}
+
+async function logoutUser(){
+  if(!confirm('Se déconnecter ?'))return;
+  await auth.signOut();
+  location.reload();
+}
+
+// ══════════════════════════════ FIRESTORE SYNC
+let _fsTimer=null;
+
+async function saveToFirestore(){
+  if(!currentUser)return;
+  try{
+    await db.collection('users').doc(currentUser.uid).collection('mototrack').doc('data').set(S);
+  }catch(e){console.warn('Firestore save error:',e);}
+}
+
+async function loadFromFirestore(){
+  if(!currentUser)return false;
+  try{
+    const snap=await db.collection('users').doc(currentUser.uid).collection('mototrack').doc('data').get();
+    if(snap.exists){
+      const data=snap.data();
+      S=Object.assign({alertHistory:[],...S},data);
+      localStorage.setItem('mototrack_v5',JSON.stringify(S));
+      return true;
+    }
+  }catch(e){console.warn('Firestore load error:',e);}
+  return false;
+}
+
 // ══════════════════════════════ THEME
 function toggleTheme(){
   const isLight=document.documentElement.classList.toggle('light');
@@ -335,7 +453,15 @@ let S = {
 };
 let currentTab='dashboard', editId=null, modalType=null;
 
-function save(){ localStorage.setItem('mototrack_v5',JSON.stringify(S)); scheduleAutoSync(); }
+function save(){
+  localStorage.setItem('mototrack_v5',JSON.stringify(S));
+  scheduleAutoSync();
+  // Debounced Firestore push (3s)
+  if(currentUser){
+    if(_fsTimer)clearTimeout(_fsTimer);
+    _fsTimer=setTimeout(()=>saveToFirestore(),3000);
+  }
+}
 function load(){
   try{ const d=JSON.parse(localStorage.getItem('mototrack_v5')||'null'); if(d) S=Object.assign({alertHistory:[],...S},d); }catch(e){}
 }
@@ -1217,13 +1343,32 @@ function updateAlertBadge(){
   }
 }
 
-// ══════════════════════════════ INIT
-load();
-loadTheme();
-checkAndFireAlerts();
-updateAlertBadge();
-switchTab('dashboard');
-scheduleAutoSync(); // démarrer auto-sync si token+gistId configurés
+// ══════════════════════════════ INIT (Firebase Auth-aware)
+loadTheme(); // theme avant tout
+
+auth.onAuthStateChanged(async(user)=>{
+  if(user){
+    currentUser=user;
+    // Logout button visible
+    const lb=document.getElementById('logout-btn');
+    if(lb)lb.style.display='';
+    // Cacher le login overlay
+    document.getElementById('login-overlay').style.display='none';
+    // Charger données depuis Firestore, sinon localStorage
+    const fromFs=await loadFromFirestore();
+    if(!fromFs) load(); // fallback localStorage
+    checkAndFireAlerts();
+    updateAlertBadge();
+    switchTab('dashboard');
+    scheduleAutoSync();
+    showToast('✅ Connecté: '+user.email);
+  } else {
+    currentUser=null;
+    const lb=document.getElementById('logout-btn');
+    if(lb)lb.style.display='none';
+    document.getElementById('login-overlay').style.display='flex';
+  }
+});
 
 // ══════════════════════════════ PWA SERVICE WORKER
 if('serviceWorker' in navigator){
