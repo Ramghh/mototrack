@@ -26,6 +26,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
+@keyframes splashPulse{0%,100%{transform:scale(1);box-shadow:0 0 30px #ff3c5f44;}50%{transform:scale(1.07);box-shadow:0 0 55px #ff3c5f88;}}
+@keyframes splashDot{0%,100%{opacity:.25;transform:scale(.8);}50%{opacity:1;transform:scale(1.2);}}
 :root{
   --bg:#0a0a0f; --bg2:#111118; --bg3:#18181f; --bg4:#1e1e28;
   --red:#ff3c5f; --teal:#00c9a7; --gold:#e6a800;
@@ -251,6 +253,22 @@ select option{background:var(--bg2);color:var(--text);}
 </style>
 </head>
 <body>
+
+<!-- ═══════════════ SPLASH SCREEN ═══════════════ -->
+<div id="splash-screen" style="position:fixed;inset:0;background:var(--bg);z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;transition:opacity .5s ease;">
+  <div style="position:relative;">
+    <div style="width:90px;height:90px;background:linear-gradient(135deg,#ff3c5f,#c0392b);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:2.8rem;box-shadow:0 0 40px #ff3c5f55;animation:splashPulse 1.2s ease-in-out infinite;">⚡</div>
+  </div>
+  <div style="text-align:center;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:2.8rem;font-weight:900;color:var(--text);letter-spacing:2px;">MotoTrack</div>
+    <div style="font-size:.75rem;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-top:4px;">Suivi Consommation</div>
+  </div>
+  <div style="margin-top:1rem;display:flex;gap:6px;" id="splash-dots">
+    <div style="width:7px;height:7px;border-radius:50%;background:var(--red);animation:splashDot .9s .0s ease-in-out infinite;"></div>
+    <div style="width:7px;height:7px;border-radius:50%;background:var(--red);animation:splashDot .9s .2s ease-in-out infinite;"></div>
+    <div style="width:7px;height:7px;border-radius:50%;background:var(--red);animation:splashDot .9s .4s ease-in-out infinite;"></div>
+  </div>
+</div>
 
 <!-- ═══════════════ LOGIN OVERLAY ═══════════════ -->
 <div id="login-overlay" style="position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1.5rem;">
@@ -1346,26 +1364,32 @@ function updateAlertBadge(){
 // ══════════════════════════════ INIT (Firebase Auth-aware)
 loadTheme(); // theme avant tout
 
+function hideSplash(){
+  const sp=document.getElementById('splash-screen');
+  if(!sp)return;
+  sp.style.opacity='0';
+  setTimeout(()=>sp.style.display='none',500);
+}
+
 auth.onAuthStateChanged(async(user)=>{
   if(user){
     currentUser=user;
-    // Logout button visible
     const lb=document.getElementById('logout-btn');
     if(lb)lb.style.display='';
-    // Cacher le login overlay
     document.getElementById('login-overlay').style.display='none';
-    // Charger données depuis Firestore, sinon localStorage
     const fromFs=await loadFromFirestore();
-    if(!fromFs) load(); // fallback localStorage
+    if(!fromFs) load();
     checkAndFireAlerts();
     updateAlertBadge();
     switchTab('dashboard');
     scheduleAutoSync();
+    hideSplash();
     showToast('✅ Connecté: '+user.email);
   } else {
     currentUser=null;
     const lb=document.getElementById('logout-btn');
     if(lb)lb.style.display='none';
+    hideSplash();
     document.getElementById('login-overlay').style.display='flex';
   }
 });
